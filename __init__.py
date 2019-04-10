@@ -106,12 +106,14 @@ class matrix(object):
         # shift after merging everything in a row, AVOID DESTRUCTIVELY MODIFYING THE LIST!
         # otherwise would skip 0s, so [2,0,0,2] would not work
         curRow = self.board[row]
+        shiftCount = curRow.count(self.fill) #only do it as many times as how many 0's are in this row
         index = 0
-        while index < len(curRow):
+        count = 0
+        while index < len(curRow) and count < shiftCount:
             if curRow[index] == self.fill:
                  curRow.pop(index)
                  curRow.append(self.fill)
-                 index += 1
+                 count += 1
             else:
                 index += 1
     
@@ -131,12 +133,14 @@ class matrix(object):
         # shift after merging everything in a row, AVOID DESTRUCTIVELY MODIFYING THE LIST!
         # otherwise would skip 0s, so [2,0,0,2] would not work
         curRow = self.board[row]
+        shiftCount = curRow.count(self.fill)
         index = -1
+        count = 0
         while index > -len(curRow): # -1,-2,-3
-            if curRow[index] == self.fill:
+            if curRow[index] == self.fill and count < shiftCount:
                  curRow.pop(index)
                  curRow.insert(0, self.fill) # replace with a 0 at the beginning/left
-                 index -= 1
+                 count += 1
             else:
                 index -= 1
 
