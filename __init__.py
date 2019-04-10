@@ -24,30 +24,29 @@ from tkinter import ttk
 class matrix(object):
 
     # Model
-    def __init__(self, rows, cols, width, height, fill):
+    def __init__(self, rows, cols, width, height, margin, fill):
         self.rows = rows
         self.cols = cols
-        self.fill = fill
         self.width = width
         self.height = height
+        self.margin = margin
+        self.fill = fill
         #boxWidth, boxHeight will be scaled to data.width, data.height by tkinter run() at the very end
         self.boxWidth = self.width // self.cols
         self.boxHeight = self.height // self.rows
-        self.board = [ [self.fill]*cols for row in range(self.rows) ]
+        self.board = [ [self.fill]*self.cols for row in range(self.rows) ]
     
     def initializeBoard(self):
         #use list comprehension to reset the board, here is a 2d list of 0
-        self.board = [ [self.fill]*cols for row in range(self.rows) ]
+        self.board = [ [self.fill]*self.cols for row in range(self.rows) ]
     
     def getItem(self, row, col):
         if 0 <= row < self.rows and 0 <= col < self.cols:
             return self.board[row][col]
-        else:
-            return None
     
     def getColor(self, item):
         #color sourced from https://flatuicolors.com/palette/defo
-        self.colors = {0:"#f1c40f", #0 will never print! a place holder color/basecolor for the board
+        self.colors = {0:"#f1c40f", #0 will never print! a place holder color/basecolor for the board, or use "#eee4da"
                        2: "#f39c12",
                        4: "#e67e22",
                        8: "#d35400",
@@ -70,11 +69,57 @@ class matrix(object):
                         }
         return self.colors[item]
 
-    def generateRandomNumber(self):
-        generate
-
     # Controller
-    def move(self, data):
+    def generateRandomNumber(self):
+        numberChoices = [2,4]
+        #this is a cheating way to creating random num with different %
+        getPercentage = random.randint(1, 100) #randint is inclusive on both sides!
+        if getPercentage <= 10: #out of 100, so 90% num is 2, 10%num is 4
+            return numberChoices[1] #which is 4
+        else:
+            return numberChoices[0] #which is 2
+
+    def placeRandomNumber(self):
+        newNum = self.generateRandomNumber()
+        possibleChoices = []
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.board[row][col] == self.fill: #meaning empty box
+                    possibleChoices += [(row, col)]
+        finalRow, finalCol = random.choice(possibleChoices)
+        self.board[finalRow][finalCol] = newNum
+
+    def moveLeft(self):
+        #only for merger
+        for row in range(self.rows):
+            for col in range(self.cols-1): #avoid "out of index" error
+                self.shiftLeft(row)
+                curNum = self.board[row][col]
+                nextNum = self.board[row][col+1]
+                if curNum == nextNum:
+                    self.board[row][col] *= 2
+                    self.board[row][col+1] = self.fill
+            self.shiftLeft(row)
+
+    def shiftLeft(self, row):
+        #shift after merging everything in a row, AVOID DESTRUCTIVELY MODIFYING THE LIST!
+        #otherwise would skip 0s, so [2,0,0,2] would not work
+        curRow = self.board[row]
+        index = 0
+        while index < len(curRow):
+            if curRow[index] == self.fill:
+                 curRow.pop(index)
+                 curRow.append(self.fill)
+            else:
+                index += 1
+    
+    def moveRight(self):
+        pass
+
+    def moveUp(self):
+        pass
+
+    def moveDown(self):
         pass
 
     # View
@@ -83,10 +128,12 @@ class matrix(object):
             for col in range(self.cols):
                 num = self.getItem(row, col)
                 color = self.getColor(num)
-                canvas.create_rectangle(row*self.boxWidth,col*self.boxHeight,
-                                        (row+1)*self.boxWidth,(col+1)*self.boxHeight, fill=color)
-                #draw box first, then put numbers on top
-                canvas.create_text((row+0.5)*self.boxWidth,(col+0.5)*self.boxHeight,text=str(num),
+                # SUPER IMPORTANT: width=cols, height=rows!
+                canvas.create_rectangle(col*self.boxWidth+self.margin, row*self.boxHeight+self.margin, 
+                                        (col+1)*self.boxHeight-self.margin, (row+1)*self.boxWidth-self.margin,
+                                        fill=color, outline="")
+                #draw box first, then put numbers on top. Text is scalled to the dimensions too! How nice!
+                canvas.create_text((col+0.5)*self.boxWidth, (row+0.5)*self.boxHeight, text=str(num),
                                     font="Arial "+str((self.boxHeight+self.boxHeight)//6))
 
 #====================================== Core animation code==============================
@@ -96,14 +143,34 @@ def init(data):
     data.rows = 4
     data.cols = 4
     data.fill = 0
-    data.board = matrix(data.rows,data.cols,data.width,data.height,data.fill)
+    data.margin = 10
+    data.board = matrix(data.rows, data.cols, data.width, data.height,
+                        data.margin, data.fill)
+    data.board.placeRandomNumber()
+    data.board.placeRandomNumber()
 
 #Controller
 def mousePressed(event, data):
     pass
 
 def keyPressed(event, data):
-    pass
+    # use event.keysym here
+    if event.keysym == "Left":
+        data.board.moveLeft()
+        data.board.placeRandomNumber()
+    elif event.keysym == "Right":
+        data.board.moveRight()
+        data.board.placeRandomNumber()
+    elif event.keysym == "Up":
+        data.board.moveUp()
+        data.board.placeRandomNumber()
+    elif event.keysym == "Down":
+        data.board.moveDown()
+        data.board.placeRandomNumber()
+    elif event.keysym == "space":
+        data.board.initializeBoard()
+        data.board.placeRandomNumber()
+        data.board.placeRandomNumber()
 
 def timerFired(data):
     pass
@@ -121,7 +188,7 @@ def run(width=300, height=300):
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
         canvas.create_rectangle(0, 0, data.width, data.height,
-                                fill='white', width=0)
+                                fill='#bbada0', width=0)
         redrawAll(canvas, data)
         canvas.update()
 
