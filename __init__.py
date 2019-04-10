@@ -89,10 +89,11 @@ class matrix(object):
         finalRow, finalCol = random.choice(possibleChoices)
         self.board[finalRow][finalCol] = newNum
 
+#====================================4 move algorithms=====================================
     def moveLeft(self):
-        #only for merger
+        #only for mergeing
         for row in range(self.rows):
-            for col in range(self.cols-1): #avoid "out of index" error
+            for col in range(self.cols-1): #avoid "out of index" error, 1,2,3
                 self.shiftLeft(row)
                 curNum = self.board[row][col]
                 nextNum = self.board[row][col+1]
@@ -102,19 +103,42 @@ class matrix(object):
             self.shiftLeft(row)
 
     def shiftLeft(self, row):
-        #shift after merging everything in a row, AVOID DESTRUCTIVELY MODIFYING THE LIST!
-        #otherwise would skip 0s, so [2,0,0,2] would not work
+        # shift after merging everything in a row, AVOID DESTRUCTIVELY MODIFYING THE LIST!
+        # otherwise would skip 0s, so [2,0,0,2] would not work
         curRow = self.board[row]
         index = 0
         while index < len(curRow):
             if curRow[index] == self.fill:
                  curRow.pop(index)
                  curRow.append(self.fill)
+                 index += 1
             else:
                 index += 1
     
     def moveRight(self):
-        pass
+        #only for mergeing
+        for row in range(self.rows):
+            for col in range(self.cols-1, 0, -1): #avoid "out of index" error, so 3,2,1
+                self.shiftRight(row)
+                curNum = self.board[row][col]
+                nextNum = self.board[row][col-1]
+                if curNum == nextNum:
+                    self.board[row][col] *= 2
+                    self.board[row][col-1] = self.fill
+            self.shiftRight(row)
+
+    def shiftRight(self, row):
+        # shift after merging everything in a row, AVOID DESTRUCTIVELY MODIFYING THE LIST!
+        # otherwise would skip 0s, so [2,0,0,2] would not work
+        curRow = self.board[row]
+        index = -1
+        while index > -len(curRow): # -1,-2,-3
+            if curRow[index] == self.fill:
+                 curRow.pop(index)
+                 curRow.insert(0, self.fill) # replace with a 0 at the beginning/left
+                 index -= 1
+            else:
+                index -= 1
 
     def moveUp(self):
         pass
