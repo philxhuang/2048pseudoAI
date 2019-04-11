@@ -23,7 +23,7 @@ from tkinter import ttk
 
 class matrix(object):
 
-    # Model
+#=======================================================Model================================================
     def __init__(self, rows, cols, width, height, margin, fill):
         self.rows = rows
         self.cols = cols
@@ -89,7 +89,7 @@ class matrix(object):
         finalRow, finalCol = random.choice(possibleChoices)
         self.board[finalRow][finalCol] = newNum
 
-#====================================4 move algorithms=====================================
+#====================================4 move left+right algorithms=====================================
     def moveLeft(self):
         #only for mergeing
         for row in range(self.rows):
@@ -130,8 +130,6 @@ class matrix(object):
             self.shiftRight(row)
 
     def shiftRight(self, row):
-        # shift after merging everything in a row, AVOID DESTRUCTIVELY MODIFYING THE LIST!
-        # otherwise would skip 0s, so [2,0,0,2] would not work
         curRow = self.board[row]
         shiftCount = curRow.count(self.fill)
         index = -1
@@ -143,14 +141,66 @@ class matrix(object):
                  count += 1
             else:
                 index -= 1
+#====================================4 move up+down algorithms=====================================
 
     def moveUp(self):
-        pass
+        #only for mergeing
+        for col in range(self.cols):
+            for row in range(self.rows-1):
+                self.shiftUp(col)
+                curNum = self.board[row][col]
+                nextNum = self.board[row+1][col]
+                if curNum == nextNum:
+                    self.board[row][col] *= 2
+                    self.board[row+1][col] = self.fill
+            self.shiftUp(col)
+    
+    def shiftUp(self, col):
+        curCol = []
+        for row in range(self.rows): # IMPORTANT note: need to transform cols to a row
+            curCol += [ self.board[row][col] ]
+        shiftCount = curCol.count(self.fill) #only do it as many times as how many 0's are in this row
+        index = 0
+        count = 0
+        while index < len(curCol) and count < shiftCount:
+            if curCol[index] == self.fill:
+                 curCol.pop(index)
+                 curCol.append(self.fill)
+                 count += 1
+            else:
+                index += 1
+        for row in range(self.rows): #now slap the new list of col #s back to the board
+            self.board[row][col] = curCol[row]
 
     def moveDown(self):
-        pass
+        for col in range(self.cols):
+            for row in range(self.rows-1, 0, -1): #3,2,1 not including 0
+                self.shiftDown(col)
+                curNum = self.board[row][col]
+                nextNum = self.board[row-1][col]
+                if curNum == nextNum:
+                    self.board[row][col] *= 2
+                    self.board[row-1][col] = self.fill
+            self.shiftDown(col)
 
-    # View
+    def shiftDown(self, col):
+        curCol = []
+        for row in range(self.rows):
+            curCol += [ self.board[row][col] ]
+        shiftCount = curCol.count(self.fill) #only do it as many times as how many 0's are in this row
+        index = -1
+        count = 0
+        while index > -len(curCol) and count < shiftCount: #-1,-2,-3
+            if curCol[index] == self.fill:
+                 curCol.pop(index)
+                 curCol.insert(0, self.fill)
+                 count += 1
+            else:
+                index -= 1
+        for row in range(self.rows): #now slap the new list of col #s back to the board
+            self.board[row][col] = curCol[row]
+
+#==================================================View===============================================
     def draw(self, canvas):
         for row in range(self.rows):
             for col in range(self.cols):
@@ -164,8 +214,10 @@ class matrix(object):
                 canvas.create_text((col+0.5)*self.boxWidth, (row+0.5)*self.boxHeight, text=str(num),
                                     font="Arial "+str((self.boxHeight+self.boxHeight)//6))
 
-#====================================== Core animation code==============================
-
+#======================================e===========================================================
+# Core animation code
+# sourced from Carnegie Mellon University 15-112 Spring 2019 page
+#==================================================================================================
 #View
 def init(data):
     data.rows = 4
@@ -174,6 +226,7 @@ def init(data):
     data.margin = 10
     data.board = matrix(data.rows, data.cols, data.width, data.height,
                         data.margin, data.fill)
+    #initial board has two numbers, so this is not redundant but iterative design
     data.board.placeRandomNumber()
     data.board.placeRandomNumber()
 
@@ -196,6 +249,7 @@ def keyPressed(event, data):
         data.board.moveDown()
         data.board.placeRandomNumber()
     elif event.keysym == "space":
+        #remake the empty board and put two numbers back in
         data.board.initializeBoard()
         data.board.placeRandomNumber()
         data.board.placeRandomNumber()
