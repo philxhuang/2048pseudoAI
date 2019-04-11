@@ -186,8 +186,8 @@ def highestNumLocation(board):
         for col in range(cols):
             curNum = board[row][col]
             if curNum > topLeft:
-                return -1
-    return 1
+                return -1000
+    return 10000
 
 def emptySquares(board):
     #bonus to more empty squares
@@ -198,23 +198,75 @@ def emptySquares(board):
         for col in range(cols):
             curNum = board[row][col]
             if curNum == 0:
-                count *= 1.2
+                count *= 1.1 # increase bonus by a ratio
     return count
 
+# this heuristics idea is adopted from:
+# https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/23853848#
+def monotinicity(board):
+    # bonus for "pyramid" number structure from a corner, here top left
+    bonus = 1
+    rows = len(board)
+    cols = len(board[0])
+    topLeft = board[0][0]
+    for row in range(rows):
+        for col in range(cols):
+            curNum = board[row][col]
+            # SUPER IMPORTANT algorithmic thinking: check diagonals' multitude, no checking last 3 squares at the other diagonal
+            if row + col == 1 and curNum == topLeft/2:
+                bonus *= 1.5
+            elif row + col == 2 and curNum == topLeft/4:
+                bonus *= 1.3
+            elif row + col == 3 and curNum == topLeft/8:
+                bonus *= 1.2
+            elif row + col == 4 and curNum == topLeft/16:
+                bonus *= 1.1
+    return bonus
+
+# this heuristics idea is also adopted from:
+# https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/23853848#
+def smoothness(board):
+    # bonus for having adjacent tiles in order to merge + continue playing
+    bonus = 1
+    rows = len(board)
+    cols = len(board[0])
+    for row in range(rows):
+        for col in range(cols):
+            curNum = board[row][col]
+            try:
+                if (curNum != 0 and \
+                    (board[row+1][col] == curNum or \
+                    board[row-1][col] == curNum or \
+                    board[row][col+1] == curNum or \
+                    board[row][col-1] == curNum)):
+                    bonus *= 1.1
+            except:
+                continue
+    return bonus
+
 def evaluation(board):
-    # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
-    wLocation = 2.5
-    wEmptySquare = 1.5
-    noise1 = 1
-    noise2 = 2
-    biasHat = 1
-    #input values from evaluation functions, so our x1,x2,x3, etc.
+    # input variables from evaluation functions, so our x1,x2,x3, etc.
     xL = emptySquares(board)
     xES = highestNumLocation(board)
-    return wLocation*(xL + noise1) + wEmptySquare*(xES + noise2) + biasHat
+    xMono = monotinicity(board)
+    xSmoth = smoothness(board)
 
-# 6 may perform more accurately, but 4 depth gives us 4096 children so we don't want to be slower
-# plus machine learning algorithm will allow us to adjust to better parameters
+    # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
+    wLocation = 100
+    wEmptySquare = 5
+    wMono = 5
+    wSmoth = 50
+
+    noise1 = 1
+    noise2 = 1
+    noise3 = 1
+    noise4 = 1
+
+    learningRate = 0.1
+    return wLocation*(learningRate*xL + noise1) + wEmptySquare*(learningRate*xES + noise2) + \
+            wMono*(learningRate*xMono + noise3) + wSmoth*(learningRate*xSmoth + noise4)
+
+# RL algorithm will allow us to adjust to better parameters
 defaultDepth = 4
 
 def expectiMax(board, depth=defaultDepth):
@@ -224,7 +276,8 @@ def expectiMax(board, depth=defaultDepth):
     else:
         #copy a new board and place one random digit onto it
         newBoard = copy.deepcopy(board)
-        placeRandomNumber(newBoard)
+        # it is a choice whether to turn on randomized board or not
+        #placeRandomNumber(newBoard)
         for treeBranch in range(4):
             # copies the same board after putting a random digit for all four moves/children boards
             postRandomBoard = copy.deepcopy(newBoard)
@@ -251,4 +304,4 @@ def expectiMax(board, depth=defaultDepth):
             return maxValue, dict[maxValue]
         #return this max value to the upper tree (return max to parent node)
         return maxValue
-print(expectiMax(board))
+#print(expectiMax(board))

@@ -21,7 +21,7 @@ import torch
 from tkinter import *
 from tkinter import ttk
 # import other files
-import ai.py
+from ai import expectiMax
 
 class matrix(object):
 
@@ -259,7 +259,20 @@ def keyPressed(event, data):
         data.board.placeRandomNumber()
 
 def timerFired(data):
-    data.timerDelay = 1000 #1000ms = 1s
+    data.timerDelay = 50 #1000ms = 1s
+    bestMove = expectiMax(data.board.board)[1]
+    if bestMove == "Left":
+        data.board.moveLeft()
+        data.board.placeRandomNumber()
+    elif bestMove == "Right":
+        data.board.moveRight()
+        data.board.placeRandomNumber()
+    elif bestMove == "Up":
+        data.board.moveUp()
+        data.board.placeRandomNumber()
+    elif bestMove == "Down":
+        data.board.moveDown()
+        data.board.placeRandomNumber()
 
 #Model
 def redrawAll(canvas, data):
