@@ -9,17 +9,19 @@
 # Algorithm consideration from StackOverflow post:
 # https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/23853848#
 # PyTorch learned from Udacity AI courses for free
+# Some animation code and OOPy animation organization adapted from:
+# https://www.youtube.com/watch?v=27hjc9sU-Z0
 #=============================================================================
 
-
-# Animation code and OOPy animation organization adapted from:
-# https://www.youtube.com/watch?v=27hjc9sU-Z0
-import random, string
+# import modules
+import random, string, copy, math, os, sys
 import numpy as np
 import pandas as pd
 import torch
 from tkinter import *
 from tkinter import ttk
+# import other files
+import ai.py
 
 class matrix(object):
 
@@ -35,6 +37,8 @@ class matrix(object):
         self.boxWidth = self.width // self.cols
         self.boxHeight = self.height // self.rows
         self.board = [ [self.fill]*self.cols for row in range(self.rows) ]
+        #deep copy the same board for AI so we do not mess up
+        self.aiBoard = copy.deepcopy(self.board)
     
     def initializeBoard(self):
         #use list comprehension to reset the board, here is a 2d list of 0
@@ -214,7 +218,7 @@ class matrix(object):
                 canvas.create_text((col+0.5)*self.boxWidth, (row+0.5)*self.boxHeight, text=str(num),
                                     font="Arial "+str((self.boxHeight+self.boxHeight)//6))
 
-#======================================e===========================================================
+#=================================================================================================
 # Core animation code
 # sourced from Carnegie Mellon University 15-112 Spring 2019 page
 #==================================================================================================
@@ -255,7 +259,7 @@ def keyPressed(event, data):
         data.board.placeRandomNumber()
 
 def timerFired(data):
-    pass
+    data.timerDelay = 1000 #1000ms = 1s
 
 #Model
 def redrawAll(canvas, data):
