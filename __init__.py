@@ -22,9 +22,9 @@ from tkinter import *
 from tkinter import ttk
 # import other files
 from ai import expectiMax
+from ai import isGameOver
 
 class matrix(object):
-
 #=======================================================Model================================================
     def __init__(self, rows, cols, width, height, margin, fill):
         self.rows = rows
@@ -90,6 +90,9 @@ class matrix(object):
             for col in range(self.cols):
                 if self.board[row][col] == self.fill: #meaning empty box
                     possibleChoices += [(row, col)]
+        #if cannot add a number to the board, just break so as to avoid "empty sequence" error
+        if possibleChoices == []:
+            return
         finalRow, finalCol = random.choice(possibleChoices)
         self.board[finalRow][finalCol] = newNum
 
@@ -260,7 +263,15 @@ def keyPressed(event, data):
 
 def timerFired(data):
     data.timerDelay = 50 #1000ms = 1s
-    bestMove = expectiMax(data.board.board)[1]
+    if not isGameOver(data.board.board):
+        #changing the defineDepth here ---> also change the maxDepth in ai.py
+        getAIMoves(data, 2)
+
+def getAIMoves(data, definedDepth):
+    #avoid aliasing the board that would cause massive problem
+    board = data.board.board
+    bestMove = expectiMax(board, data.rows, data.cols, definedDepth)[1]
+    if not isinstance(bestMove, str): return
     if bestMove == "Left":
         data.board.moveLeft()
         data.board.placeRandomNumber()
@@ -273,6 +284,7 @@ def timerFired(data):
     elif bestMove == "Down":
         data.board.moveDown()
         data.board.placeRandomNumber()
+    data.board.board = board
 
 #Model
 def redrawAll(canvas, data):
