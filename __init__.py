@@ -23,6 +23,9 @@ from tkinter import ttk
 # import other files
 from ai import expectiMax
 from ai import isGameOver
+# import matplotlib if usable
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
 
 class matrix(object):
 #=======================================================Model================================================

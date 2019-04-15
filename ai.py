@@ -10,6 +10,8 @@ import pandas as pd
 import torch
 from tkinter import *
 from tkinter import ttk
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as plt
 
 #################################################
 # HW10 SOLO PROBLEM (@print2DListResult)
@@ -275,20 +277,20 @@ def evaluation(board):
     xL = emptySquares(board)
     xES = highestNumLocation(board)
     xMono = monotinicity(board)
-    xSmoth = smoothness(board)
+    xSmooth = smoothness(board)
 
     # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
-    wLocation = 1000
-    wEmptySquare = 100
-    wMono = 50
-    wSmoth = 50
+    wLocation = 10
+    wEmptySquare = 1
+    wMono = 0.5
+    wSmooth = 1
 
-    biase1 = 0.1
-    biase2 = 0.1
-    biase3 = 0.1
-    biase4 = 0.1
+    biase1 = 0
+    biase2 = 0
+    biase3 = 0
+    biase4 = 0
     return wLocation*(xL + biase1) + wEmptySquare*(xES + biase2) + \
-            wMono*(xMono + biase3) + wSmoth*(xSmoth + biase4)
+            wMono*(xMono + biase3) + wSmooth*(xSmooth + biase4)
 
 # RL algorithm will allow us to adjust to better parameters
 def expectiMax(board, rows, cols, depth, maxDepth=2):
