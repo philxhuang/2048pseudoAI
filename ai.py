@@ -214,7 +214,7 @@ def emptySquares(board):
         for col in range(cols):
             curNum = board[row][col]
             if curNum == 0:
-                count *= 4 # increase bonus by a ratio
+                count *= 1.5 # increase bonus by a ratio
     return count
 
 # this heuristics idea is adopted from:
@@ -242,11 +242,11 @@ def monotinicity(board):
             curNum = board[row][col]
             # SUPER IMPORTANT algorithmic thinking: check diagonals' multitude, no checking last 3 squares at the other diagonal
             if row + col == 1 and curNum == maxNum/2 and curNum != 0:
-                bonus *= 2
-            elif row + col == 2 and curNum == maxNum/4 and curNum != 0:
                 bonus *= 1.5
-            elif row + col == 3 and curNum == maxNum/8 and curNum != 0:
+            elif row + col == 2 and curNum == maxNum/4 and curNum != 0:
                 bonus *= 1.3
+            elif row + col == 3 and curNum == maxNum/8 and curNum != 0:
+                bonus *= 1.2
             elif row + col == 4 and curNum == maxNum/16 and curNum != 0:
                 bonus *= 1.1
     return bonus
@@ -267,7 +267,7 @@ def smoothness(board):
                     board[row-1][col] == curNum or \
                     board[row][col+1] == curNum or \
                     board[row][col-1] == curNum)):
-                    bonus *= 2
+                    bonus *= 1.5
             except:
                 continue
     return bonus
@@ -280,10 +280,10 @@ def evaluation(board):
     xSmooth = smoothness(board)
 
     # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
-    wLocation = 10
-    wEmptySquare = 1
-    wMono = 0.5
-    wSmooth = 1
+    wLocation = 1
+    wEmptySquare = 0.5
+    wMono = 0.3
+    wSmooth = 0.5
 
     biase1 = 0
     biase2 = 0
@@ -293,7 +293,7 @@ def evaluation(board):
             wMono*(xMono + biase3) + wSmooth*(xSmooth + biase4)
 
 # RL algorithm will allow us to adjust to better parameters
-def expectiMax(board, rows, cols, depth, maxDepth=2):
+def expectiMax(board, rows, cols, depth, maxDepth):
     # use a real-time update board deep copy of the actual board: aiBoard
     if depth == 0:
         return evaluation(board)
@@ -307,16 +307,16 @@ def expectiMax(board, rows, cols, depth, maxDepth=2):
             postRandomBoard = copy.deepcopy(newBoard)
             if treeBranch == 0:
                 moveUp(postRandomBoard, rows, cols)
-                value1 = expectiMax(postRandomBoard, rows, cols, depth-1)
+                value1 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
             elif treeBranch == 1:
                 moveLeft(postRandomBoard, rows, cols)
-                value2 = expectiMax(postRandomBoard, rows, cols, depth-1)
+                value2 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
             elif treeBranch == 2:
                 moveDown(postRandomBoard, rows, cols)
-                value3 = expectiMax(postRandomBoard, rows, cols, depth-1)
+                value3 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
             elif treeBranch == 3:
                 moveRight(postRandomBoard, rows, cols)
-                value4 = expectiMax(postRandomBoard, rows, cols, depth-1)
+                value4 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
         # update alpha to the largest value from 4 moves
         maxValue = max(value1, value2, value3, value4)
         if depth == maxDepth:

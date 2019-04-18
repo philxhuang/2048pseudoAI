@@ -242,7 +242,8 @@ def init(data):
 
 #Controller
 def mousePressed(event, data):
-    pass
+   if event.keysym == "space":
+       data.board.initializeBoard()
 
 def keyPressed(event, data):
     # use event.keysym here
@@ -266,14 +267,15 @@ def keyPressed(event, data):
 
 def timerFired(data):
     data.timerDelay = 50 #1000ms = 1s
-    if not isGameOver(data.board.board):
-        #changing the defineDepth here ---> also change the maxDepth in ai.py
-        getAIMoves(data, 2)
+    #changing the defineDepth here ---> also change the maxDepth in ai.py
+    getAIMoves(data, 2, 2)
+    if isGameOver(data.board.board):
+        data.board.initializeBoard()
 
-def getAIMoves(data, definedDepth):
+def getAIMoves(data, definedDepth, maxDepth):
     #avoid aliasing the board that would cause massive problem
     board = data.board.board
-    bestMove = expectiMax(board, data.rows, data.cols, definedDepth)[1]
+    maxScore, bestMove = expectiMax(board, data.rows, data.cols, definedDepth, maxDepth)
     if not isinstance(bestMove, str): return
     if bestMove == "Left":
         data.board.moveLeft()
