@@ -29,7 +29,7 @@ def print2DListResult(f):
 
 #====================================4 move left+right algorithms=====================================
 #@print2DListResult
-def moveLeft(board, rows, cols):
+def moveLeft(board, rows, cols, baseNum):
     #only for mergeing
     for row in range(rows):
         for col in range(cols-1): #avoid "out of index" error, 1,2,3
@@ -37,7 +37,7 @@ def moveLeft(board, rows, cols):
             curNum = board[row][col]
             nextNum = board[row][col+1]
             if curNum == nextNum:
-                board[row][col] *= 2
+                board[row][col] *= baseNum
                 board[row][col+1] = 0
         shiftLeft(board, row)
     return board
@@ -58,7 +58,7 @@ def shiftLeft(board, row):
             index += 1
 
 #@print2DListResult  
-def moveRight(board, rows, cols):
+def moveRight(board, rows, cols, baseNum):
     #only for mergeing
     for row in range(rows):
         for col in range(cols-1, 0, -1): #avoid "out of index" error, so 3,2,1
@@ -66,7 +66,7 @@ def moveRight(board, rows, cols):
             curNum = board[row][col]
             nextNum = board[row][col-1]
             if curNum == nextNum:
-                board[row][col] *= 2
+                board[row][col] *= baseNum
                 board[row][col-1] = 0
         shiftRight(board, row)
     return board
@@ -85,7 +85,7 @@ def shiftRight(board, row):
             index -= 1
 #====================================4 move up+down algorithms=====================================
 #@print2DListResult
-def moveUp(board, rows, cols):
+def moveUp(board, rows, cols, baseNum):
     #only for mergeing
     for col in range(cols):
         for row in range(rows-1):
@@ -93,7 +93,7 @@ def moveUp(board, rows, cols):
             curNum = board[row][col]
             nextNum = board[row+1][col]
             if curNum == nextNum:
-                board[row][col] *= 2
+                board[row][col] *= baseNum
                 board[row+1][col] = 0
         shiftUp(board, col)
     return board
@@ -117,14 +117,14 @@ def shiftUp(board, col):
         board[row][col] = curCol[row]
 
 #@print2DListResult
-def moveDown(board, rows, cols):
+def moveDown(board, rows, cols, baseNum):
     for col in range(cols):
         for row in range(rows-1, 0, -1): #3,2,1 not including 0
             shiftDown(board, col)
             curNum = board[row][col]
             nextNum = board[row-1][col]
             if curNum == nextNum:
-                board[row][col] *= 2
+                board[row][col] *= baseNum
                 board[row-1][col] = 0
         shiftDown(board, col)
     return board
@@ -147,31 +147,9 @@ def shiftDown(board, col):
     for row in range(rows): #now slap the new list of col #s back to the board
         board[row][col] = curCol[row]
 
-#=================================use to generate a random number on one empty square=======================
-def generateRandomNumber():
-    numberChoices = [2,4]
-    #this is a cheating way to creating random num with different %
-    getPercentage = random.randint(1, 100) #randint is inclusive on both sides!
-    if getPercentage <= 10: #out of 100, so 90% num is 2, 10%num is 4
-        return numberChoices[1] #which is 4
-    else:
-        return numberChoices[0] #which is 2
-
-def placeRandomNumber(board):
-    rows = len(board)
-    cols = len(board[0])
-    newNum = generateRandomNumber()
-    possibleChoices = []
-    for row in range(rows):
-        for col in range(cols):
-            if board[row][col] == 0: #meaning empty box
-                possibleChoices += [(row, col)]
-    finalRow, finalCol = random.choice(possibleChoices)
-    board[finalRow][finalCol] = newNum
-    return board
-
 #=============================================check game state==============================================
-def isGameOver(board):
+def isGameOver(realBoard, baseNum):
+    board = copy.deepcopy(realBoard)
     rows = len(board)
     cols = len(board[0])    
     postLeft = copy.deepcopy(board)
@@ -179,10 +157,10 @@ def isGameOver(board):
     postRight = copy.deepcopy(board)
     postDown = copy.deepcopy(board)
 
-    postLeft = moveLeft(postLeft, rows, cols)
-    postUp = moveUp(postUp, rows, cols)
-    postRight = moveRight(postRight, rows, cols)
-    postDown = moveDown(postDown, rows, cols)
+    postLeft = moveLeft(postLeft, rows, cols, baseNum)
+    postUp = moveUp(postUp, rows, cols, baseNum)
+    postRight = moveRight(postRight, rows, cols, baseNum)
+    postDown = moveDown(postDown, rows, cols, baseNum)
 
     if board == postLeft and board == postUp and \
         board == postRight and board == postDown:
@@ -214,7 +192,7 @@ def emptySquares(board):
         for col in range(cols):
             curNum = board[row][col]
             if curNum == 0:
-                count *= 1.5 # increase bonus by a ratio
+                count *= 1.2 # increase bonus by a ratio
     return count
 
 # this heuristics idea is adopted from:
@@ -241,13 +219,13 @@ def monotinicity(board):
         for col in range(cols):
             curNum = board[row][col]
             # SUPER IMPORTANT algorithmic thinking: check diagonals' multitude, no checking last 3 squares at the other diagonal
-            if row + col == 1 and curNum == maxNum/2 and curNum != 0:
-                bonus *= 1.5
-            elif row + col == 2 and curNum == maxNum/4 and curNum != 0:
+            if row + col == 1 and curNum**2 == maxNum and curNum != 0:
                 bonus *= 1.3
-            elif row + col == 3 and curNum == maxNum/8 and curNum != 0:
+            elif row + col == 2 and curNum**3 == maxNum and curNum != 0:
                 bonus *= 1.2
-            elif row + col == 4 and curNum == maxNum/16 and curNum != 0:
+            elif row + col == 3 and curNum**4 == maxNum and curNum != 0:
+                bonus *= 1.1
+            elif row + col == 4 and curNum**5 == maxNum and curNum != 0:
                 bonus *= 1.1
     return bonus
 
@@ -267,7 +245,7 @@ def smoothness(board):
                     board[row-1][col] == curNum or \
                     board[row][col+1] == curNum or \
                     board[row][col-1] == curNum)):
-                    bonus *= 1.5
+                    bonus *= 1.1
             except:
                 continue
     return bonus
@@ -280,9 +258,9 @@ def evaluation(board):
     xSmooth = smoothness(board)
 
     # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
-    wLocation = 1
+    wLocation = 10
     wEmptySquare = 0.5
-    wMono = 0.3
+    wMono = 1
     wSmooth = 0.5
 
     biase1 = 0
@@ -293,7 +271,7 @@ def evaluation(board):
             wMono*(xMono + biase3) + wSmooth*(xSmooth + biase4)
 
 # RL algorithm will allow us to adjust to better parameters
-def expectiMax(board, rows, cols, depth, maxDepth):
+def expectiMax(board, rows, cols, baseNum, depth, maxDepth):
     # use a real-time update board deep copy of the actual board: aiBoard
     if depth == 0:
         return evaluation(board)
@@ -306,25 +284,25 @@ def expectiMax(board, rows, cols, depth, maxDepth):
             # copies the same board after putting a random digit for all four moves/children boards
             postRandomBoard = copy.deepcopy(newBoard)
             if treeBranch == 0:
-                moveUp(postRandomBoard, rows, cols)
-                value1 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
+                moveUp(postRandomBoard, rows, cols, baseNum)
+                value1 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
             elif treeBranch == 1:
-                moveLeft(postRandomBoard, rows, cols)
-                value2 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
+                moveLeft(postRandomBoard, rows, cols, baseNum)
+                value2 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
             elif treeBranch == 2:
-                moveDown(postRandomBoard, rows, cols)
-                value3 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
+                moveRight(postRandomBoard, rows, cols, baseNum)
+                value3 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
             elif treeBranch == 3:
-                moveRight(postRandomBoard, rows, cols)
-                value4 = expectiMax(postRandomBoard, rows, cols, depth-1, maxDepth)
+                moveDown(postRandomBoard, rows, cols, baseNum)
+                value4 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
         # update alpha to the largest value from 4 moves
         maxValue = max(value1, value2, value3, value4)
         if depth == maxDepth:
             #this if statement will run only at top level
             dict = {value1: "Up",
                     value2: "Left",
-                    value3: "Down",
-                    value4: "Right"}
+                    value3: "Right",
+                    value4: "Down"}
             return maxValue, dict[maxValue]
         #return this max value to the upper tree (return max to parent node)
         return maxValue

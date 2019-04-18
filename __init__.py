@@ -29,19 +29,27 @@ import matplotlib.pyplot as plt
 
 class matrix(object):
 #=======================================================Model================================================
-    def __init__(self, rows, cols, width, height, margin, fill):
+    def __init__(self, rows, cols, width, height, tileMargin, boardMargin, topMargin, rightMargin, baseNum, baseProb, fill):
         self.rows = rows
         self.cols = cols
         self.width = width
         self.height = height
-        self.margin = margin
-        self.fill = fill
+
+        self.tileMargin = tileMargin
+        self.topMargin = topMargin
+        self.rightMargin = rightMargin
+        self.boardMargin = boardMargin
+
+        self.boardWidth = self.width - self.rightMargin
+        self.boardHeight = self.height - self.topMargin
         #boxWidth, boxHeight will be scaled to data.width, data.height by tkinter run() at the very end
-        self.boxWidth = self.width // self.cols
-        self.boxHeight = self.height // self.rows
+        self.boxWidth = self.boardWidth // self.cols
+        self.boxHeight = self.boardHeight // self.rows
+
+        self.baseNum = baseNum
+        self.baseProb = baseProb
+        self.fill = fill
         self.board = [ [self.fill]*self.cols for row in range(self.rows) ]
-        #deep copy the same board for AI so we do not mess up
-        self.aiBoard = copy.deepcopy(self.board)
     
     def initializeBoard(self):
         #use list comprehension to reset the board, here is a 2d list of 0
@@ -53,38 +61,38 @@ class matrix(object):
     
     def getColor(self, item):
         #color sourced from https://flatuicolors.com/palette/defo
-        self.colors = {0:"#f1c40f", #0 will never print! a place holder color/basecolor for the board, or use "#eee4da"
-                       2: "#f39c12",
-                       4: "#e67e22",
-                       8: "#d35400",
-                       16: "#e74c3c",
-                       32: "#c0392b",
-                       64: "#1abc9c",
-                       128: "#16a085",
-                       256: "#2ecc71",
-                       512: "#27ae60", #2^10 power!
-                       1024: "#3498db",
-                       2048: "#2980b9",
-                       4096: "#9b59b6",
-                       8192: "#8e44ad",
-                       16384: "#34495e", #starting black here to whiter grey below
-                       32768: "#2c3e50",
-                       65536: "##7f8c8d",
-                       131072: "#95a5a6",
-                       262144: "#bdc3c7",
-                       524288: "#ecf0f1" #"clouds color", almost impossible to achieve to my knowledge, challenge me! :)
+        self.colors = {self.fill:"#f1c40f", #0 will never print! a place holder color/basecolor for the board, or use "#eee4da"
+                       self.baseNum: "#f39c12",
+                       self.baseNum**2: "#e67e22",
+                       self.baseNum**3: "#d35400",
+                       self.baseNum**4: "#e74c3c",
+                       self.baseNum**5: "#c0392b",
+                       self.baseNum**6: "#1abc9c",
+                       self.baseNum**7: "#16a085",
+                       self.baseNum**8: "#2ecc71",
+                       self.baseNum**9: "#27ae60",
+                       self.baseNum**10: "#3498db", # baseNum^10 power!
+                       self.baseNum**11: "#2980b9",
+                       self.baseNum**12: "#9b59b6",
+                       self.baseNum**13: "#8e44ad",
+                       self.baseNum**14: "#34495e", #starting black here to whiter grey below
+                       self.baseNum**15: "#2c3e50",
+                       self.baseNum**16: "##7f8c8d",
+                       self.baseNum**17: "#95a5a6",
+                       self.baseNum**18: "#bdc3c7",
+                       self.baseNum**19: "#ecf0f1" #"clouds color", almost impossible to achieve to my knowledge, challenge me! :)
                         }
         return self.colors[item]
 
     # Controller
     def generateRandomNumber(self):
-        numberChoices = [2,4]
+        numberChoices = [self.baseNum, self.baseNum**2]
         #this is a cheating way to creating random num with different %
         getPercentage = random.randint(1, 100) #randint is inclusive on both sides!
-        if getPercentage <= 10: #out of 100, so 90% num is 2, 10%num is 4
-            return numberChoices[1] #which is 4
-        else:
+        if getPercentage <= self.baseProb: #out of 100, so 90% num is 2, 10% num is 4
             return numberChoices[0] #which is 2
+        else:
+            return numberChoices[1] #which is 4
 
     def placeRandomNumber(self):
         newNum = self.generateRandomNumber()
@@ -108,7 +116,7 @@ class matrix(object):
                 curNum = self.board[row][col]
                 nextNum = self.board[row][col+1]
                 if curNum == nextNum:
-                    self.board[row][col] *= 2
+                    self.board[row][col] *= self.baseNum
                     self.board[row][col+1] = self.fill
             self.shiftLeft(row)
 
@@ -135,7 +143,7 @@ class matrix(object):
                 curNum = self.board[row][col]
                 nextNum = self.board[row][col-1]
                 if curNum == nextNum:
-                    self.board[row][col] *= 2
+                    self.board[row][col] *= self.baseNum
                     self.board[row][col-1] = self.fill
             self.shiftRight(row)
 
@@ -161,7 +169,7 @@ class matrix(object):
                 curNum = self.board[row][col]
                 nextNum = self.board[row+1][col]
                 if curNum == nextNum:
-                    self.board[row][col] *= 2
+                    self.board[row][col] *= self.baseNum
                     self.board[row+1][col] = self.fill
             self.shiftUp(col)
     
@@ -189,7 +197,7 @@ class matrix(object):
                 curNum = self.board[row][col]
                 nextNum = self.board[row-1][col]
                 if curNum == nextNum:
-                    self.board[row][col] *= 2
+                    self.board[row][col] *= self.baseNum
                     self.board[row-1][col] = self.fill
             self.shiftDown(col)
 
@@ -212,17 +220,21 @@ class matrix(object):
 
 #==================================================View===============================================
     def draw(self, canvas):
+        canvas.create_rectangle(self.boardMargin, self.topMargin + self.tileMargin - self.boardMargin,
+                                self.boardWidth - self.boardMargin, self.topMargin + self.boardHeight - self.boardMargin, fill="")
         for row in range(self.rows):
             for col in range(self.cols):
                 num = self.getItem(row, col)
                 color = self.getColor(num)
                 # SUPER IMPORTANT: width=cols, height=rows!
-                canvas.create_rectangle(col*self.boxWidth+self.margin, row*self.boxHeight+self.margin, 
-                                        (col+1)*self.boxHeight-self.margin, (row+1)*self.boxWidth-self.margin,
+                canvas.create_rectangle(col*self.boxWidth + self.tileMargin + self.boardMargin,
+                                        row*self.boxHeight + self.tileMargin + self.topMargin + self.boardMargin, 
+                                        (col+1)*self.boxWidth - self.tileMargin - self.boardMargin, 
+                                        (row+1)*self.boxHeight - self.tileMargin + self.topMargin - self.boardMargin,
                                         fill=color, outline="")
                 #draw box first, then put numbers on top. Text is scalled to the dimensions too! How nice!
-                canvas.create_text((col+0.5)*self.boxWidth, (row+0.5)*self.boxHeight, text=str(num),
-                                    font="Arial "+str((self.boxHeight+self.boxHeight)//6))
+                canvas.create_text((col+0.5)*self.boxWidth, (row+0.5)*self.boxHeight + self.topMargin,
+                                    text=str(num), font="Arial "+str((self.boxHeight + self.boxHeight)//8))
 
 #=================================================================================================
 # Core animation code
@@ -233,17 +245,25 @@ def init(data):
     data.rows = 4
     data.cols = 4
     data.fill = 0
-    data.margin = 10
+
+    data.tileMargin = 5
+    data.boardMargin = 5
+    data.topMargin = 30
+    data.rightMargin = 250
+
+    data.baseNum = 2
+    data.baseProb = 90
+
     data.board = matrix(data.rows, data.cols, data.width, data.height,
-                        data.margin, data.fill)
+                        data.tileMargin, data.boardMargin, data.topMargin, data.rightMargin,
+                        data.baseNum, data.baseProb, data.fill)
     #initial board has two numbers, so this is not redundant but iterative design
     data.board.placeRandomNumber()
     data.board.placeRandomNumber()
 
 #Controller
 def mousePressed(event, data):
-   if event.keysym == "space":
-       data.board.initializeBoard()
+    pass
 
 def keyPressed(event, data):
     # use event.keysym here
@@ -269,14 +289,14 @@ def timerFired(data):
     data.timerDelay = 50 #1000ms = 1s
     #changing the defineDepth here ---> also change the maxDepth in ai.py
     getAIMoves(data, 2, 2)
-    if isGameOver(data.board.board):
+    if isGameOver(data.board.board, data.baseNum):
         data.board.initializeBoard()
 
 def getAIMoves(data, definedDepth, maxDepth):
     #avoid aliasing the board that would cause massive problem
-    board = data.board.board
-    maxScore, bestMove = expectiMax(board, data.rows, data.cols, definedDepth, maxDepth)
-    if not isinstance(bestMove, str): return
+    board = copy.deepcopy(data.board.board)
+    bestScore, bestMove = expectiMax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
+    if not isinstance(bestMove, str): return #safe break
     if bestMove == "Left":
         data.board.moveLeft()
         data.board.placeRandomNumber()
@@ -289,7 +309,6 @@ def getAIMoves(data, definedDepth, maxDepth):
     elif bestMove == "Down":
         data.board.moveDown()
         data.board.placeRandomNumber()
-    data.board.board = board
 
 #Model
 def redrawAll(canvas, data):
@@ -344,4 +363,4 @@ def run(width=300, height=300):
     root.mainloop()  # blocks until window is closed
     print("bye!")
 
-run(600, 600)
+run(800, 500)
