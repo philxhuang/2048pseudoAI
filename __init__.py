@@ -160,7 +160,6 @@ class matrix(object):
             else:
                 index -= 1
 #====================================4 move up+down algorithms=====================================
-
     def moveUp(self):
         #only for mergeing
         for col in range(self.cols):
@@ -218,6 +217,49 @@ class matrix(object):
         for row in range(self.rows): #now slap the new list of col #s back to the board
             self.board[row][col] = curCol[row]
 
+##########################################################################################################
+# Evil AI Mode
+# inspirations from https://github.com/sztupy/2048-Hard
+# and from this Evil 2048 AI here https://github.com/aj-r/Evil-2048
+##########################################################################################################
+    def findMaxEvil(self, evilMatrix):
+        # the lowest maxNum is guaranteed to be 2, which is > -1
+        targetRow = 0
+        targetCol = 0
+        maxNum = -1
+        for row in range(self.rows):
+            for col in range(self.cols):
+                curNum = evilMatrix[row][col]
+                if curNum > maxNum:
+                    maxNum = curNum
+                    targetRow = row
+                    targetCol = col
+        return maxNum, targetRow, targetCol
+
+    def getEvilMaxtrix(self):
+        # use the sum of adjacent tiles to comput the most annoying tile position possible
+        probMatrix = [ [0]*self.cols for row in range(self.rows) ]
+        for row in range(self.rows):
+            for col in range(self.cols):
+                curNum = self.board[row][col]
+                if curNum != self.fill:
+                    for r,c in [(0,1),(1,0),(0,-1),(-1,0)]:
+                        # try all four directions, but no wrap-around
+                        try:
+                            if self.board[row+r][col+c] == self.fill \
+                                and row+r >= 0 and col+c >= 0:
+                                probMatrix[row+r][col+c] += curNum
+                        except:
+                            continue
+        return probMatrix
+
+    def evilAIMove(self):
+        # use probability to put a tile in the most annoying place
+        evilMatrix = self.getEvilMaxtrix()
+        evilNum, evilRow, evilCol = self.findMaxEvil(evilMatrix)
+        newNum = self.generateRandomNumber()
+        self.board[evilRow][evilCol] = newNum
+
 #==================================================View===============================================
     def draw(self, canvas):
         canvas.create_rectangle(self.boardMargin, self.topMargin + self.tileMargin - self.boardMargin,
@@ -234,7 +276,11 @@ class matrix(object):
                                         fill=color, outline="")
                 #draw box first, then put numbers on top. Text is scalled to the dimensions too! How nice!
                 canvas.create_text((col+0.5)*self.boxWidth, (row+0.5)*self.boxHeight + self.topMargin,
-                                    text=str(num), font="Arial "+str((self.boxHeight + self.boxHeight)//8))
+                                    text=str(num), font="Arial "+str((self.boxHeight + self.boxWidth)//10))
+                #also tell the powers of the tiles based on the self.baseNum
+                if num != 0:
+                    canvas.create_text((col+0.5)*self.boxWidth, (row+0.75)*self.boxHeight + self.topMargin,
+                                        text=str( int(math.log(num,self.baseNum)) )+"th Power", font="Arial "+str((self.boxHeight + self.boxWidth)//20))
 
 #=================================================================================================
 # Core animation code
@@ -248,7 +294,7 @@ def init(data):
 
     data.tileMargin = 5
     data.boardMargin = 5
-    data.topMargin = 30
+    data.topMargin = 100
     data.rightMargin = 250
 
     data.baseNum = 2
@@ -257,7 +303,11 @@ def init(data):
     data.board = matrix(data.rows, data.cols, data.width, data.height,
                         data.tileMargin, data.boardMargin, data.topMargin, data.rightMargin,
                         data.baseNum, data.baseProb, data.fill)
+
+    #start with normal mode
+    data.isEvilMode = False
     #initial board has two numbers, so this is not redundant but iterative design
+
     data.board.placeRandomNumber()
     data.board.placeRandomNumber()
 
@@ -269,16 +319,28 @@ def keyPressed(event, data):
     # use event.keysym here
     if event.keysym == "Left":
         data.board.moveLeft()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
     elif event.keysym == "Right":
         data.board.moveRight()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
     elif event.keysym == "Up":
         data.board.moveUp()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
     elif event.keysym == "Down":
         data.board.moveDown()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
     elif event.keysym == "space":
         #remake the empty board and put two numbers back in
         data.board.initializeBoard()
@@ -288,27 +350,39 @@ def keyPressed(event, data):
 def timerFired(data):
     data.timerDelay = 50 #1000ms = 1s
     #changing the defineDepth here ---> also change the maxDepth in ai.py
-    getAIMoves(data, 2, 2)
-    if isGameOver(data.board.board, data.baseNum):
-        data.board.initializeBoard()
+    getExpectimaxMove(data, 3, 3)
+    #if isGameOver(data.board.board, data.baseNum):
+        #data.board.initializeBoard()
 
-def getAIMoves(data, definedDepth, maxDepth):
+def getExpectimaxMove(data, definedDepth, maxDepth):
     #avoid aliasing the board that would cause massive problem
     board = copy.deepcopy(data.board.board)
     bestScore, bestMove = expectiMax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
     if not isinstance(bestMove, str): return #safe break
     if bestMove == "Left":
         data.board.moveLeft()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
     elif bestMove == "Right":
         data.board.moveRight()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
     elif bestMove == "Up":
         data.board.moveUp()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
     elif bestMove == "Down":
         data.board.moveDown()
-        data.board.placeRandomNumber()
+        if data.isEvilMode:
+            data.board.evilAIMove()
+        else:
+            data.board.placeRandomNumber()
 
 #Model
 def redrawAll(canvas, data):
@@ -363,4 +437,4 @@ def run(width=300, height=300):
     root.mainloop()  # blocks until window is closed
     print("bye!")
 
-run(800, 500)
+run(800, 600)

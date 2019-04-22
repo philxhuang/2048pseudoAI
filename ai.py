@@ -168,7 +168,7 @@ def isGameOver(realBoard, baseNum):
     return False
 
 ##########################################################################################################
-# Testing AI Code
+# Evaluation Functions for AI
 ##########################################################################################################
 
 def highestNumLocation(board):
@@ -192,13 +192,16 @@ def emptySquares(board):
         for col in range(cols):
             curNum = board[row][col]
             if curNum == 0:
-                count *= 1.2 # increase bonus by a ratio
+                count *= 1.1 # increase bonus by a ratio
     return count
 
 # this heuristics idea is adopted from:
 # https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/23853848#
-def findMaxNum(board):
+def findMaxNumAndPos(board):
     # the lowest maxNum is guaranteed to be 2, which is > -1
+    targetRow = 0
+    targetCol = 0
+
     rows = len(board)
     cols = len(board[0])
     maxNum = -1
@@ -207,22 +210,24 @@ def findMaxNum(board):
             curNum = board[row][col]
             if curNum > maxNum:
                 maxNum = curNum
-    return maxNum
+                targetRow = row
+                targetCol = col
+    return maxNum, targetRow, targetCol
 
 def monotinicity(board):
-    # bonus for "pyramid" number structure from a corner, here top left
+    # bonus for making rows/cols either strictly increasing or decreasing
     bonus = 1
     rows = len(board)
     cols = len(board[0])
-    maxNum = findMaxNum(board)
+    maxNum = findMaxNumAndPos(board)[0]
     for row in range(rows):
         for col in range(cols):
             curNum = board[row][col]
             # SUPER IMPORTANT algorithmic thinking: check diagonals' multitude, no checking last 3 squares at the other diagonal
             if row + col == 1 and curNum**2 == maxNum and curNum != 0:
-                bonus *= 1.3
-            elif row + col == 2 and curNum**3 == maxNum and curNum != 0:
                 bonus *= 1.2
+            elif row + col == 2 and curNum**3 == maxNum and curNum != 0:
+                bonus *= 1.1
             elif row + col == 3 and curNum**4 == maxNum and curNum != 0:
                 bonus *= 1.1
             elif row + col == 4 and curNum**5 == maxNum and curNum != 0:
@@ -239,6 +244,7 @@ def smoothness(board):
     for row in range(rows):
         for col in range(cols):
             curNum = board[row][col]
+            # too lazy to write different cases here. :p. This is bad style but actually faster
             try:
                 if (curNum != 0 and \
                     (board[row+1][col] == curNum or \
@@ -250,6 +256,9 @@ def smoothness(board):
                 continue
     return bonus
 
+# Weight Matrix Theories from: https://codemyroad.wordpress.com/2014/05/14/2048-ai-the-intelligent-bot/
+# and from http://www.randalolson.com/2015/04/27/artificial-intelligence-has-crushed-all-human-records-in-2048-heres-how-the-ai-pulled-it-off/
+# and extremely helpful from https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
 def evaluation(board):
     # input variables from evaluation functions, so our x1,x2,x3, etc.
     xL = emptySquares(board)
@@ -258,10 +267,10 @@ def evaluation(board):
     xSmooth = smoothness(board)
 
     # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
-    wLocation = 10
-    wEmptySquare = 0.5
+    wLocation = 100
+    wEmptySquare = 1
     wMono = 1
-    wSmooth = 0.5
+    wSmooth = 1
 
     biase1 = 0
     biase2 = 0
@@ -270,7 +279,9 @@ def evaluation(board):
     return wLocation*(xL + biase1) + wEmptySquare*(xES + biase2) + \
             wMono*(xMono + biase3) + wSmooth*(xSmooth + biase4)
 
-# RL algorithm will allow us to adjust to better parameters
+##########################################################################################################
+# Expectimax AI
+##########################################################################################################
 def expectiMax(board, rows, cols, baseNum, depth, maxDepth):
     # use a real-time update board deep copy of the actual board: aiBoard
     if depth == 0:
@@ -306,4 +317,11 @@ def expectiMax(board, rows, cols, baseNum, depth, maxDepth):
             return maxValue, dict[maxValue]
         #return this max value to the upper tree (return max to parent node)
         return maxValue
+
 #print(expectiMax(board))
+
+##########################################################################################################
+# Minimax AI
+# somehow very similar approach from https://github.com/Kulbear/endless-2048
+# more complicated from https://github.com/SrinidhiRaghavan/AI-2048-Puzzle
+##########################################################################################################
