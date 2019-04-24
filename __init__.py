@@ -293,7 +293,7 @@ def init(data):
     data.tileMargin = 5
     data.boardMargin = 5
     data.topMargin = 100
-    data.rightMargin = 250
+    data.rightMargin = 400
 
     data.baseNum = 2
     data.baseProb = 90
@@ -301,6 +301,9 @@ def init(data):
     data.board = matrix(data.rows, data.cols, data.width, data.height,
                         data.tileMargin, data.boardMargin, data.topMargin, data.rightMargin,
                         data.baseNum, data.baseProb, data.fill)
+    #initial board has two numbers, so this is not redundant but iterative design
+    data.board.placeRandomNumber()
+    data.board.placeRandomNumber()
 
     #start with normal mode
     data.isGameOver = False
@@ -309,10 +312,6 @@ def init(data):
     data.isEvilMode = False
     data.isExpectimax = False
     data.isMinimax = True
-    #initial board has two numbers, so this is not redundant but iterative design
-
-    data.board.placeRandomNumber()
-    data.board.placeRandomNumber()
 
 #Controller
 def mousePressed(event, data):
@@ -354,9 +353,10 @@ def timerFired(data):
     data.timerDelay = 50 #1000ms = 1s
     #changing the defineDepth here ---> also change the maxDepth in ai.py
     if data.isAI:
-        getAIMove(data, 2, 2)
+        getAIMove(data, 4, 4)
     #if data.isGameOver or isGameOver(data.board.board, data.baseNum):
         #data.board.initializeBoard()
+        #data.isGameOver = False
 
 def getAIMove(data, definedDepth, maxDepth):
     #avoid aliasing the board that would cause massive problem
@@ -447,4 +447,4 @@ def run(width=300, height=300):
     root.mainloop()  # blocks until window is closed
     print("bye!")
 
-run(800, 600)
+run(1000, 600)

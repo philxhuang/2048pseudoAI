@@ -231,7 +231,17 @@ def monotinicity(board):
             else:
                 temp = 1
         bonus *= temp
-    # maybe for every col, check if strictly decreasing from up to down
+    #for every col, check if strictly decreasing from up to down
+    for col in range(cols):
+        temp = 1
+        for row in range(rows-1):
+            curNum = board[row][col]
+            nextNum = board[row+1][col]
+            if curNum > nextNum:
+                temp = 1.5
+            else:
+                temp = 1
+        bonus *= temp
     return bonus
 
 # this heuristics idea is also adopted from:
@@ -243,12 +253,13 @@ def smoothness(board):
     rows = len(board)
     cols = len(board[0])
     for row in range(rows):
-        for col in range(cols, 2): # skip a col because we already check all 4 adjacent tiles, more efficient
+        for col in range(0, cols, 2): # skip a col because we already check all 4 adjacent tiles, more efficient
             curNum = board[row][col]
             for r,c in [(0,1),(1,0),(0,-1),(-1,0)]:
                 if rows > row+r >= 0 and cols > col+c >= 0 and curNum != 0:
-                    checkedNum = board[row+1][col+c]
-                    score += math.log(abs(curNum - checkedNum),10) # best way to make large differences small, by using log10
+                    checkedNum = board[row+r][col+c]
+                    if curNum-checkedNum != 0:
+                        score += math.log(abs(curNum - checkedNum),10) # best way to make large differences small, by using log10
     return score
 
 # idea from https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
@@ -263,9 +274,9 @@ def gradient(board):
     for row in range(rows):
         for col in range(cols):
             if row == 0:
-                gradientMatrix[row][col] = (cols-1) - col - row
+                gradientMatrix[row][col] = cols - col - row #first row, last weight is 0
             else:
-                gradientMatrix[row][col] = -1 - col - row
+                gradientMatrix[row][col] = 0 - col - row # minimize weights of middle rows
     # now compute the score
     for row in range(rows):
         for col in range(cols):
@@ -284,13 +295,14 @@ def evaluation(board):
     xMono = monotinicity(board)
     xSmooth = smoothness(board)
     xGrad = gradient(board)
+    #print(xL, xES, xMono, xSmooth, xGrad)
 
     # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
     wLocation = 100
     wEmptySquare = 10
     wMono = 1
     wSmooth = 1
-    wGrad = 1
+    wGrad = 2
 
     bias1 = 0
     bias2 = 0
@@ -306,10 +318,7 @@ def evaluation(board):
 ##########################################################################################################
 def expectimax(board, rows, cols, baseNum, depth, maxDepth, alpha1=-np.inf, alpha2=-np.inf, alpha3=-np.inf, alpha4=-np.inf):
     # use a real-time update board deep copy of the actual board: aiBoard
-    if isGameOver(board, baseNum):
-        # game over states will have negative infinite values
-        return -np.inf
-    elif depth == 0:
+    if depth == 0:
         return evaluation(board)
     else:
         for treeBranch in range(4):
@@ -390,10 +399,7 @@ def getAllPossibleTiles(board, rows, cols):
 
 def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.inf, beta=np.inf):
     # alpha is max score for maxie, beta is min score for mini
-    if isGameOver(board, baseNum):
-        # game over states will have negative infinite values
-        return -np.inf
-    elif depth == 0:
+    if depth == 0:
         # evaluate when the last step is maxie/player and last depth is <= 1
         return evaluation(board)
     else:
