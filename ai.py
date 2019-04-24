@@ -217,7 +217,7 @@ def findMaxNumAndPos(board):
 # ideas refined by https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
 def monotinicity(board):
     # bonus for making rows/cols either strictly decreasing from the left cornor
-    bonus = 0
+    bonus = 1
     rows = len(board)
     cols = len(board[0])
     # for every row, check if strictly decreasing from left to right
@@ -227,10 +227,10 @@ def monotinicity(board):
             curNum = board[row][col]
             nextNum = board[row][col+1]
             if curNum > nextNum:
-                temp *= 1.5
+                temp = 1.5
             else:
                 temp = 1
-        bonus += temp
+        bonus *= temp
     # maybe for every col, check if strictly decreasing from up to down
     return bonus
 
@@ -265,7 +265,7 @@ def gradient(board):
             if row == 0:
                 gradientMatrix[row][col] = (cols-1) - col - row
             else:
-                gradientMatrix[row][col] = -1
+                gradientMatrix[row][col] = -1 - col - row
     # now compute the score
     for row in range(rows):
         for col in range(cols):
@@ -279,8 +279,8 @@ def gradient(board):
 # and extremely helpful from https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
 def evaluation(board):
     # input variables from evaluation functions, so our x1,x2,x3, etc.
-    xL = emptySquares(board)
-    xES = highestNumLocation(board)
+    xL = highestNumLocation(board)
+    xES = emptySquares(board)
     xMono = monotinicity(board)
     xSmooth = smoothness(board)
     xGrad = gradient(board)
@@ -290,7 +290,7 @@ def evaluation(board):
     wEmptySquare = 10
     wMono = 1
     wSmooth = 1
-    wGrad = 10
+    wGrad = 1
 
     bias1 = 0
     bias2 = 0
@@ -304,9 +304,12 @@ def evaluation(board):
 ##########################################################################################################
 # Expectimax AI
 ##########################################################################################################
-def expectimax(board, rows, cols, baseNum, depth, maxDepth):
+def expectimax(board, rows, cols, baseNum, depth, maxDepth, alpha1=-np.inf, alpha2=-np.inf, alpha3=-np.inf, alpha4=-np.inf):
     # use a real-time update board deep copy of the actual board: aiBoard
-    if depth == 0:
+    if isGameOver(board, baseNum):
+        # game over states will have negative infinite values
+        return -np.inf
+    elif depth == 0:
         return evaluation(board)
     else:
         for treeBranch in range(4):
@@ -314,26 +317,57 @@ def expectimax(board, rows, cols, baseNum, depth, maxDepth):
             newBoard = copy.deepcopy(board)
             if treeBranch == 0:
                 moveUp(newBoard, rows, cols, baseNum)
-                value1 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
+                possibleTiles = getAllPossibleTiles(newBoard, rows, cols)
+                if possibleTiles != None:
+                    for tile in possibleTiles:
+                        randomBoard = copy.deepcopy(newBoard)
+                        row, col = tile
+                        randomBoard[row][col] = baseNum
+                        value1 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth, alpha1, alpha2, alpha3, alpha4)
+                        alpha1 = max(alpha1, value1)
             elif treeBranch == 1:
                 moveLeft(newBoard, rows, cols, baseNum)
-                value2 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
+                possibleTiles = getAllPossibleTiles(newBoard, rows, cols)
+                if possibleTiles != None:
+                    for tile in possibleTiles:
+                        randomBoard = copy.deepcopy(newBoard)
+                        row, col = tile
+                        randomBoard[row][col] = baseNum
+                        value2 = expectimax(randomBoard, rows, cols, baseNum, depth-1, maxDepth, alpha1, alpha2, alpha3, alpha4)
+                        alpha2 = max(alpha2, value2)
             elif treeBranch == 2:
                 moveRight(newBoard, rows, cols, baseNum)
-                value3 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
+                possibleTiles = getAllPossibleTiles(newBoard, rows, cols)
+                if possibleTiles != None:
+                    for tile in possibleTiles:
+                        randomBoard = copy.deepcopy(newBoard)
+                        row, col = tile
+                        randomBoard[row][col] = baseNum
+                        value3 = expectimax(randomBoard, rows, cols, baseNum, depth-1, maxDepth, alpha1, alpha2, alpha3, alpha4)
+                        alpha3 = max(alpha3, value3)
             elif treeBranch == 3:
                 moveDown(newBoard, rows, cols, baseNum)
-                value4 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
+                possibleTiles = getAllPossibleTiles(newBoard, rows, cols)
+                if possibleTiles != None:
+                    for tile in possibleTiles:
+                        randomBoard = copy.deepcopy(newBoard)
+                        row, col = tile
+                        randomBoard[row][col] = baseNum
+                        value4 = expectimax(randomBoard, rows, cols, baseNum, depth-1, maxDepth, alpha1, alpha2, alpha3, alpha4)
+                        alpha4 = max(alpha4, value4)
         # update alpha to the largest value from 4 moves
-        maxValue = max(value1, value2, value3, value4)
+        maxValue = max(alpha1, alpha2, alpha3, alpha4)
         if depth == maxDepth:
-            #this if statement will run only at top level
-            dict = {value1: "Up",
-                    value2: "Left",
-                    value3: "Right",
-                    value4: "Down"}
-            return maxValue, dict[maxValue]
-        #return this max value to the upper tree (return max to parent node)
+            # this if statement will run only at top level when recursion goes all the way back
+            # not using a dict, using a list to try in order, up first
+            dict = [ [alpha1, "Up"],
+                    [alpha2, "Left"],
+                    [alpha3, "Right"],
+                    [alpha4, "Down"]
+                    ]
+            for i in dict:
+                if i[0] == maxValue:
+                    return maxValue, i[1]
         return maxValue
 
 #print(expectimax(board))
@@ -392,11 +426,15 @@ def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.i
                     if beta <= alpha:
                         break
             if depth == maxDepth:
-                dict = {value1: "Up",
-                        value2: "Left",
-                        value3: "Right",
-                        value4: "Down"}
-                return alpha, dict[alpha]
+                dict = [ [value1, "Up"],
+                        [value2, "Left"],
+                        [value3, "Right"],
+                        [value4, "Down"]
+                        ]
+                for i in dict:
+                    if i[0] == alpha:
+                        return alpha, i[1]
+            # still do this for depth > 2 to prevent returning None for even nodes > 2
             return alpha
         else:
             #random generator's turn / min's turn, n possible moves < rows*cols
@@ -410,6 +448,6 @@ def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.i
                     beta = min(beta, minValue)
                     if beta <= alpha:
                         break
-                return minValue
+                return beta
             else:
                 return -np.inf

@@ -365,6 +365,7 @@ def getAIMove(data, definedDepth, maxDepth):
         bestScore, bestMove = expectimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
     elif data.isMinimax:
         bestScore, bestMove = minimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
+    #print(bestScore, bestMove)
 
     if bestScore == -np.inf: data.isGameOver = True
 
