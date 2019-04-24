@@ -21,7 +21,8 @@ import torch
 from tkinter import *
 from tkinter import ttk
 # import other files
-from ai import expectiMax
+from ai import expectimax
+from ai import minimax
 from ai import isGameOver
 # import matplotlib if usable
 import matplotlib.mlab as mlab
@@ -245,12 +246,9 @@ class matrix(object):
                 if curNum != self.fill:
                     for r,c in [(0,1),(1,0),(0,-1),(-1,0)]:
                         # try all four directions, but no wrap-around
-                        try:
-                            if self.board[row+r][col+c] == self.fill \
-                                and row+r >= 0 and col+c >= 0:
-                                probMatrix[row+r][col+c] += curNum
-                        except:
-                            continue
+                        if self.rows > row+r >= 0 and self.cols > col+c >= 0 \
+                            and self.board[row+r][col+c] == self.fill:
+                            probMatrix[row+r][col+c] += curNum
         return probMatrix
 
     def evilAIMove(self):
@@ -305,7 +303,12 @@ def init(data):
                         data.baseNum, data.baseProb, data.fill)
 
     #start with normal mode
+    data.isGameOver = False
+    data.isAI = True
+
     data.isEvilMode = False
+    data.isExpectimax = False
+    data.isMinimax = True
     #initial board has two numbers, so this is not redundant but iterative design
 
     data.board.placeRandomNumber()
@@ -350,15 +353,21 @@ def keyPressed(event, data):
 def timerFired(data):
     data.timerDelay = 50 #1000ms = 1s
     #changing the defineDepth here ---> also change the maxDepth in ai.py
-    getExpectimaxMove(data, 3, 3)
-    #if isGameOver(data.board.board, data.baseNum):
+    if data.isAI:
+        getAIMove(data, 2, 2)
+    #if data.isGameOver or isGameOver(data.board.board, data.baseNum):
         #data.board.initializeBoard()
 
-def getExpectimaxMove(data, definedDepth, maxDepth):
+def getAIMove(data, definedDepth, maxDepth):
     #avoid aliasing the board that would cause massive problem
     board = copy.deepcopy(data.board.board)
-    bestScore, bestMove = expectiMax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
-    if not isinstance(bestMove, str): return #safe break
+    if data.isExpectimax:
+        bestScore, bestMove = expectimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
+    elif data.isMinimax:
+        bestScore, bestMove = minimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
+
+    if bestScore == -np.inf: data.isGameOver = True
+
     if bestMove == "Left":
         data.board.moveLeft()
         if data.isEvilMode:

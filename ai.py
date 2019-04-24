@@ -214,47 +214,65 @@ def findMaxNumAndPos(board):
                 targetCol = col
     return maxNum, targetRow, targetCol
 
+# ideas refined by https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
 def monotinicity(board):
-    # bonus for making rows/cols either strictly increasing or decreasing
-    bonus = 1
+    # bonus for making rows/cols either strictly decreasing from the left cornor
+    bonus = 0
     rows = len(board)
     cols = len(board[0])
-    maxNum = findMaxNumAndPos(board)[0]
+    # for every row, check if strictly decreasing from left to right
     for row in range(rows):
-        for col in range(cols):
+        temp = 1
+        for col in range(cols-1):
             curNum = board[row][col]
-            # SUPER IMPORTANT algorithmic thinking: check diagonals' multitude, no checking last 3 squares at the other diagonal
-            if row + col == 1 and curNum**2 == maxNum and curNum != 0:
-                bonus *= 1.2
-            elif row + col == 2 and curNum**3 == maxNum and curNum != 0:
-                bonus *= 1.1
-            elif row + col == 3 and curNum**4 == maxNum and curNum != 0:
-                bonus *= 1.1
-            elif row + col == 4 and curNum**5 == maxNum and curNum != 0:
-                bonus *= 1.1
+            nextNum = board[row][col+1]
+            if curNum > nextNum:
+                temp *= 1.5
+            else:
+                temp = 1
+        bonus += temp
+    # maybe for every col, check if strictly decreasing from up to down
     return bonus
 
 # this heuristics idea is also adopted from:
 # https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/23853848#
+# idea refined by https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
 def smoothness(board):
-    # bonus for having adjacent tiles in order to merge + continue playing
-    bonus = 1
+    # measures the difference between neighboring tiles and tries to minimize this count
+    score = 1
     rows = len(board)
     cols = len(board[0])
     for row in range(rows):
+        for col in range(cols, 2): # skip a col because we already check all 4 adjacent tiles, more efficient
+            curNum = board[row][col]
+            for r,c in [(0,1),(1,0),(0,-1),(-1,0)]:
+                if rows > row+r >= 0 and cols > col+c >= 0 and curNum != 0:
+                    checkedNum = board[row+1][col+c]
+                    score += math.log(abs(curNum - checkedNum),10) # best way to make large differences small, by using log10
+    return score
+
+# idea from https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
+# and from https://github.com/SrinidhiRaghavan/AI-2048-Puzzle/blob/master/Helper.py
+# WEIGHT_MATRIX = [[2048, 1024, 64, 32],[512, 128, 16, 2],[256, 8, 2, 1],[4, 2, 1, 1]] for 2048 specifically
+def gradient(board):
+    score = 0
+    rows = len(board)
+    cols = len(board[0])
+    # recrate gradiantMatrix based on the current row and cols of the board, so the diagonal is not always all 0!
+    gradientMatrix = [ [0]*cols for row in range(rows) ]
+    for row in range(rows):
+        for col in range(cols):
+            if row == 0:
+                gradientMatrix[row][col] = (cols-1) - col - row
+            else:
+                gradientMatrix[row][col] = -1
+    # now compute the score
+    for row in range(rows):
         for col in range(cols):
             curNum = board[row][col]
-            # too lazy to write different cases here. :p. This is bad style but actually faster
-            try:
-                if (curNum != 0 and \
-                    (board[row+1][col] == curNum or \
-                    board[row-1][col] == curNum or \
-                    board[row][col+1] == curNum or \
-                    board[row][col-1] == curNum)):
-                    bonus *= 1.1
-            except:
-                continue
-    return bonus
+            if curNum != 0:
+                score += math.log(curNum,10)*gradientMatrix[row][col] # use log of the tile num so the score is not crazy large
+    return score
 
 # Weight Matrix Theories from: https://codemyroad.wordpress.com/2014/05/14/2048-ai-the-intelligent-bot/
 # and from http://www.randalolson.com/2015/04/27/artificial-intelligence-has-crushed-all-human-records-in-2048-heres-how-the-ai-pulled-it-off/
@@ -265,47 +283,47 @@ def evaluation(board):
     xES = highestNumLocation(board)
     xMono = monotinicity(board)
     xSmooth = smoothness(board)
+    xGrad = gradient(board)
 
     # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
     wLocation = 100
-    wEmptySquare = 1
+    wEmptySquare = 10
     wMono = 1
     wSmooth = 1
+    wGrad = 10
 
-    biase1 = 0
-    biase2 = 0
-    biase3 = 0
-    biase4 = 0
-    return wLocation*(xL + biase1) + wEmptySquare*(xES + biase2) + \
-            wMono*(xMono + biase3) + wSmooth*(xSmooth + biase4)
+    bias1 = 0
+    bias2 = 0
+    bias3 = 0
+    bias4 = 0
+    bias5 = 0
+    # be careful with the signs here
+    return wLocation*(xL + bias1) + wEmptySquare*(xES + bias2) + \
+            wMono*(xMono + bias3) + wSmooth*(xSmooth + bias4) + wGrad*(xGrad + bias5)
 
 ##########################################################################################################
 # Expectimax AI
 ##########################################################################################################
-def expectiMax(board, rows, cols, baseNum, depth, maxDepth):
+def expectimax(board, rows, cols, baseNum, depth, maxDepth):
     # use a real-time update board deep copy of the actual board: aiBoard
     if depth == 0:
         return evaluation(board)
     else:
-        #copy a new board and place one random digit onto it
-        newBoard = copy.deepcopy(board)
-        # it is a choice whether to turn on randomized board or not
-        #placeRandomNumber(newBoard)
         for treeBranch in range(4):
-            # copies the same board after putting a random digit for all four moves/children boards
-            postRandomBoard = copy.deepcopy(newBoard)
+            #copy a new board and place one random digit onto it
+            newBoard = copy.deepcopy(board)
             if treeBranch == 0:
-                moveUp(postRandomBoard, rows, cols, baseNum)
-                value1 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
+                moveUp(newBoard, rows, cols, baseNum)
+                value1 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
             elif treeBranch == 1:
-                moveLeft(postRandomBoard, rows, cols, baseNum)
-                value2 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
+                moveLeft(newBoard, rows, cols, baseNum)
+                value2 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
             elif treeBranch == 2:
-                moveRight(postRandomBoard, rows, cols, baseNum)
-                value3 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
+                moveRight(newBoard, rows, cols, baseNum)
+                value3 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
             elif treeBranch == 3:
-                moveDown(postRandomBoard, rows, cols, baseNum)
-                value4 = expectiMax(postRandomBoard, rows, cols, baseNum, depth-1, maxDepth)
+                moveDown(newBoard, rows, cols, baseNum)
+                value4 = expectimax(newBoard, rows, cols, baseNum, depth-1, maxDepth)
         # update alpha to the largest value from 4 moves
         maxValue = max(value1, value2, value3, value4)
         if depth == maxDepth:
@@ -318,10 +336,80 @@ def expectiMax(board, rows, cols, baseNum, depth, maxDepth):
         #return this max value to the upper tree (return max to parent node)
         return maxValue
 
-#print(expectiMax(board))
+#print(expectimax(board))
 
 ##########################################################################################################
 # Minimax AI
 # somehow very similar approach from https://github.com/Kulbear/endless-2048
 # more complicated from https://github.com/SrinidhiRaghavan/AI-2048-Puzzle
 ##########################################################################################################
+def getAllPossibleTiles(board, rows, cols):
+    possibleChoices = []
+    for row in range(rows):
+        for col in range(cols):
+            if board[row][col] == 0:
+                possibleChoices += [(row, col)]
+    #if cannot add a number to the board, just break so as to avoid "empty sequence" error
+    if possibleChoices == []:
+        return None
+    return possibleChoices
+
+def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.inf, beta=np.inf):
+    # alpha is max score for maxie, beta is min score for mini
+    if isGameOver(board, baseNum):
+        # game over states will have negative infinite values
+        return -np.inf
+    elif depth == 0:
+        # evaluate when the last step is maxie/player and last depth is <= 1
+        return evaluation(board)
+    else:
+        if isMax:
+            #player's turn, 4 moves
+            for treeBranch in range(4):
+                maxieBoard = copy.deepcopy(board)
+                if treeBranch == 0:
+                    moveUp(maxieBoard, rows, cols, baseNum)
+                    value1 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    alpha = max(alpha, value1)
+                    if beta <= alpha:
+                        break
+                elif treeBranch == 1:
+                    moveLeft(maxieBoard, rows, cols, baseNum)
+                    value2 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    alpha = max(alpha, value2)
+                    if beta <= alpha:
+                        break
+                elif treeBranch == 2:
+                    moveRight(maxieBoard, rows, cols, baseNum)
+                    value3 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    alpha = max(alpha, value3)
+                    if beta <= alpha:
+                        break
+                elif treeBranch == 3:
+                    moveDown(maxieBoard, rows, cols, baseNum)
+                    value4 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    alpha = max(alpha, value4)
+                    if beta <= alpha:
+                        break
+            if depth == maxDepth:
+                dict = {value1: "Up",
+                        value2: "Left",
+                        value3: "Right",
+                        value4: "Down"}
+                return alpha, dict[alpha]
+            return alpha
+        else:
+            #random generator's turn / min's turn, n possible moves < rows*cols
+            possibleTiles = getAllPossibleTiles(board, rows, cols)
+            if possibleTiles != None:
+                for tile in possibleTiles:
+                    miniBoard = copy.deepcopy(board)
+                    row, col = tile
+                    miniBoard[row][col] = baseNum
+                    minValue = minimax(miniBoard, rows, cols, baseNum, depth-1, maxDepth, True, alpha, beta)
+                    beta = min(beta, minValue)
+                    if beta <= alpha:
+                        break
+                return minValue
+            else:
+                return -np.inf
