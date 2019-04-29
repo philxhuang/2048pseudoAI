@@ -72,7 +72,7 @@ def topBar(root):
     menuBar.add_command(label="Exit", command=root.quit)
         
     # create a pulldown menu, and add it to the menu bar
-    menuBar.add_command(label="Game Rules", command=rules)
+    menuBar.add_command(label="Game Rules & Commands", command=rules)
     menuBar.add_command(label="Customizable Parameters", command=parameters)
 
     AIMenu = Menu(menuBar, tearoff=0)
@@ -108,13 +108,13 @@ def customize(root, data):
     baseProbInput.place(x=data.width-data.rightMargin//2,y=data.topMargin+data.height*3//8,width=data.rightMargin//2.5)
 
     def getParas():
-        # any input is a string
+        # get inputs and validate; inputs are strings
         rows = rowsInput.get()
-        if rows.isdigit() and 0 < int(rows) <= 10:
+        if rows.isdigit() and 3 < int(rows) <= 10:
             data.rows = int(rows)
         
         cols = colsInput.get()
-        if cols.isdigit() and 0 < int(cols) <= 10:
+        if cols.isdigit() and 3 < int(cols) <= 10:
             data.cols = int(cols)
 
         baseNum = baseNumInput.get()

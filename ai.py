@@ -347,8 +347,8 @@ class RL(object):
 
         xGrad = 0
         # now compute the score
-        for row in range(self.rows):
-            for col in range(self.cols):
+        for row in range(4):
+            for col in range(4):
                 curNum = self.board[row][col]
                 if curNum != 0:
                     xGrad += math.log(curNum,10)*RL.gradientMatrix[row][col] # use log of the tile num so the score is not crazy large

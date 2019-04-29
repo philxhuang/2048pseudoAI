@@ -293,7 +293,7 @@ def init(data):
     data.baseNum = 2
     data.baseProb = 90
 
-    data.topMargin = 60
+    data.topMargin = 80
     data.rightMargin = 300
 
     data.tileMargin = 5
@@ -316,7 +316,7 @@ def init(data):
     data.isRL = False
 
     data.isLoaded = False
-    data.isOnAuto = False
+    data.isAutoOn = False
 
 #Controller
 def mousePressed(event, data):
@@ -367,14 +367,18 @@ def keyPressed(event, data):
         data.board.placeRandomNumber()
         data.board.placeRandomNumber()
         data.moveCount = 0
-    elif event.keysym == "c":
+    
+    if event.keysym == "c":
         # when c is pressed, clear and learning matrix
         RL.initializeRL()
-
-    if event.keysym == "q" and data.depth < 6:
-            data.depth += 1
-    elif event.keysym == "e" and 1 < data.depth:
-            data.depth -= 1
+    elif event.keysym == "x" and data.depth < 6:
+        data.depth += 1
+    elif event.keysym == "z" and 1 < data.depth:
+        data.depth -= 1
+    elif event.keysym == "e":
+        data.isEvilMode = not data.isEvilMode
+    elif event.keysym == "a":
+        data.isAutoOn = not data.isAutoOn
 
 def timerFired(data):   
     data.timerDelay = 100 #1000(ms) = 1s
@@ -383,7 +387,7 @@ def timerFired(data):
         getAIMove(data, data.depth, data.depth)
         data.moveCount += 1
     
-    if data.isOnAuto and (data.isGameOver or isGameOver(data.board.board, data.baseNum)):
+    if data.isAutoOn and (data.isGameOver or isGameOver(data.board.board, data.baseNum)):
         data.board.initializeBoard()
         data.isGameOver = False
         data.moveCount = 0
@@ -467,24 +471,36 @@ def drawAI(canvas, data):
 
     canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*6.5//8,text='Press "c" to clear Q-learning matrix',width=data.rightMargin//2.2)
 
+def drawTop(canvas, data):
+    canvas.create_text( (data.width-data.rightMargin)//6,data.topMargin//4,
+                        text="Moves", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+    canvas.create_text( (data.width-data.rightMargin)//6,data.topMargin*3//4,
+                        text=str(data.moveCount), font="Arial " + str(12))
+    
+    canvas.create_text( (data.width-data.rightMargin)*2//6,data.topMargin//4,
+                        text="Highest Score", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+    canvas.create_text( (data.width-data.rightMargin)*2//6,data.topMargin*3//4,
+                        text="2048", font="Arial " + str(12))
+
+    canvas.create_text( (data.width-data.rightMargin)*3//6,data.topMargin//4,
+                        text="Recursion Depth", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+    canvas.create_text( (data.width-data.rightMargin)*3//6,data.topMargin*3//4,
+                        text=str(data.depth), font="Arial " + str(12))
+
+    canvas.create_text( (data.width-data.rightMargin)*4//6,data.topMargin//4,
+                        text="Evil Mode", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+    canvas.create_text( (data.width-data.rightMargin)*4//6,data.topMargin*3//4,
+                        text="ON" if data.isEvilMode else "OFF", font="Arial " + str(12))
+
+    canvas.create_text( (data.width-data.rightMargin)*5//6,data.topMargin//4,
+                        text="Auto Play", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+    canvas.create_text( (data.width-data.rightMargin)*5//6,data.topMargin*3//4,
+                        text="ON" if data.isAutoOn else "OFF", font="Arial " + str(12))
+
 #Model
 def redrawAll(canvas, data):
     data.board.draw(canvas)
-    canvas.create_text( (data.width-data.rightMargin)//4,data.topMargin//4,
-                        text="Moves", font="Arial " + str(12))
-    canvas.create_text( (data.width-data.rightMargin)//4,data.topMargin*3//4,
-                        text=str(data.moveCount), font="Arial " + str(12))
-    
-    canvas.create_text( (data.width-data.rightMargin)*2//4,data.topMargin//4,
-                        text="Highest Score", font="Arial " + str(12))
-    canvas.create_text( (data.width-data.rightMargin)*2//4,data.topMargin*3//4,
-                        text="2048", font="Arial " + str(12))
-
-    canvas.create_text( (data.width-data.rightMargin)*3//4,data.topMargin//4,
-                        text="Recursion Depth", font="Arial " + str(12))
-    canvas.create_text( (data.width-data.rightMargin)*3//4,data.topMargin*3//4,
-                        text=str(data.depth), font="Arial " + str(12))
-
+    drawTop(canvas, data)
     drawLoad(canvas, data)
     drawInstructions(canvas, data)
     drawAI(canvas, data)
@@ -521,7 +537,6 @@ def run(width=600, height=600):
     data = Struct()
     data.width = width
     data.height = height
-
     data.timerDelay = 100 # milliseconds for default
     init(data)
 
