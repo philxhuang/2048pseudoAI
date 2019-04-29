@@ -21,9 +21,8 @@ import torch
 from tkinter import *
 from tkinter import ttk
 # import other files
-from ai import expectimax
-from ai import minimax
-from ai import isGameOver
+from ai import expectimax, minimax, isGameOver
+from navigation import topBar, customize
 # import matplotlib if usable
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
@@ -286,17 +285,10 @@ class matrix(object):
 #==================================================================================================
 #View
 def init(data):
-    data.rows = 4
-    data.cols = 4
     data.fill = 0
 
     data.tileMargin = 5
     data.boardMargin = 5
-    data.topMargin = 100
-    data.rightMargin = 400
-
-    data.baseNum = 2
-    data.baseProb = 90
 
     data.board = matrix(data.rows, data.cols, data.width, data.height,
                         data.tileMargin, data.boardMargin, data.topMargin, data.rightMargin,
@@ -311,34 +303,25 @@ def init(data):
 
     data.isEvilMode = False
     data.isExpectimax = False
-    data.isMinimax = True
+    data.isMinimax = False
+    data.isRL = True
 
 #Controller
 def mousePressed(event, data):
-    pass
+    pass    
 
 def keyPressed(event, data):
     # use event.keysym here
-    if event.keysym == "Left":
-        data.board.moveLeft()
-        if data.isEvilMode:
-            data.board.evilAIMove()
-        else:
-            data.board.placeRandomNumber()
-    elif event.keysym == "Right":
-        data.board.moveRight()
-        if data.isEvilMode:
-            data.board.evilAIMove()
-        else:
-            data.board.placeRandomNumber()
-    elif event.keysym == "Up":
-        data.board.moveUp()
-        if data.isEvilMode:
-            data.board.evilAIMove()
-        else:
-            data.board.placeRandomNumber()
-    elif event.keysym == "Down":
-        data.board.moveDown()
+    if event.keysym in {"Left","Right","Up","Down"}:
+        if event.keysym == "Left":
+            data.board.moveLeft()
+        elif event.keysym == "Right":
+            data.board.moveRight()
+        elif event.keysym == "Up":
+            data.board.moveUp()
+        elif event.keysym == "Down":
+            data.board.moveDown()
+        
         if data.isEvilMode:
             data.board.evilAIMove()
         else:
@@ -364,35 +347,26 @@ def getAIMove(data, definedDepth, maxDepth):
     if data.isExpectimax:
         bestScore, bestMove = expectimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
     elif data.isMinimax:
-        bestScore, bestMove = minimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth)
+        bestScore, bestMove = minimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth, False) #RL is off
+    elif data.isRL:
+        bestScore, bestMove = minimax(board, data.rows, data.cols, data.baseNum, definedDepth, maxDepth, True) #RL is on
     #print(bestScore, bestMove)
 
     if bestScore == -np.inf: data.isGameOver = True
 
     if bestMove == "Left":
         data.board.moveLeft()
-        if data.isEvilMode:
-            data.board.evilAIMove()
-        else:
-            data.board.placeRandomNumber()
     elif bestMove == "Right":
         data.board.moveRight()
-        if data.isEvilMode:
-            data.board.evilAIMove()
-        else:
-            data.board.placeRandomNumber()
     elif bestMove == "Up":
         data.board.moveUp()
-        if data.isEvilMode:
-            data.board.evilAIMove()
-        else:
-            data.board.placeRandomNumber()
     elif bestMove == "Down":
         data.board.moveDown()
-        if data.isEvilMode:
-            data.board.evilAIMove()
-        else:
-            data.board.placeRandomNumber()
+
+    if data.isEvilMode:
+        data.board.evilAIMove()
+    else:
+        data.board.placeRandomNumber()
 
 #Model
 def redrawAll(canvas, data):
@@ -403,7 +377,7 @@ def redrawAll(canvas, data):
 # sourced from Carnegie Mellon University 15-112 Spring 2019 page
 #=======================================================================================
 
-def run(width=300, height=300):
+def run(width=600, height=600, rows=4, cols=4, baseNum=2, baseProb=90, topMargin=60, rightMargin=300):
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
         canvas.create_rectangle(0, 0, data.width, data.height,
@@ -424,19 +398,35 @@ def run(width=300, height=300):
         redrawAllWrapper(canvas, data)
         # pause, then call timerFired again
         canvas.after(data.timerDelay, timerFiredWrapper, canvas, data)
+
     # Set up data and call init
     class Struct(object): pass
     data = Struct()
     data.width = width
     data.height = height
-    data.timerDelay = 100 # milliseconds
+
+    data.topMargin = topMargin
+    data.rightMargin = rightMargin
+
+    data.rows = rows
+    data.cols = cols
+    data.baseNum = baseNum
+    data.baseProb = baseProb
+
+    data.timerDelay = 100 # milliseconds for default
     init(data)
-    # create the root and the canvas
+
+    # create the root and the canvaes
     root = Tk()
     root.resizable(width=False, height=False) # prevents resizing window
     canvas = Canvas(root, width=data.width, height=data.height)
     canvas.configure(bd=0, highlightthickness=0)
     canvas.pack()
+
+    # retrieves everything from the nevigation.py file
+    topBar(root)
+    customize(root, data)
+
     # set up events
     root.bind("<Button-1>", lambda event:
                             mousePressedWrapper(event, canvas, data))
@@ -445,6 +435,6 @@ def run(width=300, height=300):
     timerFiredWrapper(canvas, data)
     # and launch the app
     root.mainloop()  # blocks until window is closed
-    print("bye!")
+    print("Bye!")
 
-run(1000, 600)
+run(800, 600)

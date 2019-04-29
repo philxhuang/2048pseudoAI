@@ -265,10 +265,7 @@ def smoothness(board):
 # idea from https://github.com/Kulbear/endless-2048/blob/master/agent/minimax_agent.py
 # and from https://github.com/SrinidhiRaghavan/AI-2048-Puzzle/blob/master/Helper.py
 # WEIGHT_MATRIX = [[2048, 1024, 64, 32],[512, 128, 16, 2],[256, 8, 2, 1],[4, 2, 1, 1]] for 2048 specifically
-def gradient(board):
-    score = 0
-    rows = len(board)
-    cols = len(board[0])
+def getMatrix(rows, cols):
     # recrate gradiantMatrix based on the current row and cols of the board, so the diagonal is not always all 0!
     gradientMatrix = [ [0]*cols for row in range(rows) ]
     for row in range(rows):
@@ -277,6 +274,14 @@ def gradient(board):
                 gradientMatrix[row][col] = cols - col - row #first row, last weight is 0
             else:
                 gradientMatrix[row][col] = 0 - col - row # minimize weights of middle rows
+    return gradientMatrix
+
+def gradient(board):
+    score = 0
+    rows = len(board)
+    cols = len(board[0])
+    # recrate gradiantMatrix based on the current row and cols of the board, so the diagonal is not always all 0!
+    gradientMatrix = getMatrix(rows, cols)
     # now compute the score
     for row in range(rows):
         for col in range(cols):
@@ -302,7 +307,7 @@ def evaluation(board):
     wEmptySquare = 10
     wMono = 1
     wSmooth = 1
-    wGrad = 2
+    wGrad = 1
 
     bias1 = 0
     bias2 = 0
@@ -312,6 +317,54 @@ def evaluation(board):
     # be careful with the signs here
     return wLocation*(xL + bias1) + wEmptySquare*(xES + bias2) + \
             wMono*(xMono + bias3) + wSmooth*(xSmooth + bias4) + wGrad*(xGrad + bias5)
+
+class RL(object):
+    def __init__(self, board, rows, cols):
+        self.board = board
+        self.rows = rows
+        self.cols = cols
+
+    gradientMatrix = [ [4-col-row if row == 0 else 0 for col in range(4)] for row in range(4)]
+
+    def updateMatrix(self):
+        for row in range(4):
+            for col in range(4):
+                curNum = self.board[row][col]
+                RL.gradientMatrix[row][col] -= 0.1 #penalize every move used
+                if curNum != 0:
+                    RL.gradientMatrix[row][col] += 0.1*math.log(curNum,10) #learning rate = 0.1
+        print(RL.gradientMatrix)
+
+    def evalRL(self):
+        # because the gradient matrix is aliased, it will learn as it goes  
+        xL = highestNumLocation(self.board)
+        xES = emptySquares(self.board)
+        xMono = monotinicity(self.board)
+        xSmooth = smoothness(self.board)
+
+        xGrad = 0
+        # now compute the score
+        for row in range(self.rows):
+            for col in range(self.cols):
+                curNum = self.board[row][col]
+                if curNum != 0:
+                    xGrad += math.log(curNum,10)*RL.gradientMatrix[row][col] # use log of the tile num so the score is not crazy large
+
+        # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
+        wLocation = 100
+        wEmptySquare = 10
+        wMono = 1
+        wSmooth = 1
+        wGrad = 1
+
+        bias1 = 0
+        bias2 = 0
+        bias3 = 0
+        bias4 = 0
+        bias5 = 0
+        # be careful with the signs here
+        return wLocation*(xL + bias1) + wEmptySquare*(xES + bias2) + \
+                wMono*(xMono + bias3) + wSmooth*(xSmooth + bias4) + wGrad*(xGrad + bias5)
 
 ##########################################################################################################
 # Expectimax AI
@@ -397,11 +450,14 @@ def getAllPossibleTiles(board, rows, cols):
         return None
     return possibleChoices
 
-def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.inf, beta=np.inf):
+def minimax(board, rows, cols, baseNum, depth, maxDepth, isRL, isMax=True, alpha=-np.inf, beta=np.inf):
     # alpha is max score for maxie, beta is min score for mini
     if depth == 0:
         # evaluate when the last step is maxie/player and last depth is <= 1
-        return evaluation(board)
+        if isRL:
+            return RL(board, rows, cols).evalRL()
+        else:
+            return evaluation(board)
     else:
         if isMax:
             #player's turn, 4 moves
@@ -409,25 +465,25 @@ def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.i
                 maxieBoard = copy.deepcopy(board)
                 if treeBranch == 0:
                     moveUp(maxieBoard, rows, cols, baseNum)
-                    value1 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    value1 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, isRL, False, alpha, beta)
                     alpha = max(alpha, value1)
                     if beta <= alpha:
                         break
                 elif treeBranch == 1:
                     moveLeft(maxieBoard, rows, cols, baseNum)
-                    value2 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    value2 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, isRL, False, alpha, beta)
                     alpha = max(alpha, value2)
                     if beta <= alpha:
                         break
                 elif treeBranch == 2:
                     moveRight(maxieBoard, rows, cols, baseNum)
-                    value3 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    value3 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, isRL, False, alpha, beta)
                     alpha = max(alpha, value3)
                     if beta <= alpha:
                         break
                 elif treeBranch == 3:
                     moveDown(maxieBoard, rows, cols, baseNum)
-                    value4 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, False, alpha, beta)
+                    value4 = minimax(maxieBoard, rows, cols, baseNum, depth-1, maxDepth, isRL, False, alpha, beta)
                     alpha = max(alpha, value4)
                     if beta <= alpha:
                         break
@@ -439,6 +495,7 @@ def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.i
                         ]
                 for i in dict:
                     if i[0] == alpha:
+                        RL(board,rows,cols).updateMatrix() #update matrix for RL only when for every move, not for every calculation for a move
                         return alpha, i[1]
             # still do this for depth > 2 to prevent returning None for even nodes > 2
             return alpha
@@ -450,7 +507,7 @@ def minimax(board, rows, cols, baseNum, depth, maxDepth, isMax=True, alpha=-np.i
                     miniBoard = copy.deepcopy(board)
                     row, col = tile
                     miniBoard[row][col] = baseNum
-                    minValue = minimax(miniBoard, rows, cols, baseNum, depth-1, maxDepth, True, alpha, beta)
+                    minValue = minimax(miniBoard, rows, cols, baseNum, depth-1, maxDepth, isRL, True, alpha, beta)
                     beta = min(beta, minValue)
                     if beta <= alpha:
                         break
