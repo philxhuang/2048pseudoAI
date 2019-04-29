@@ -21,7 +21,7 @@ import torch
 from tkinter import *
 from tkinter import ttk
 # import other files
-from ai import expectimax, minimax, isGameOver
+from ai import expectimax, minimax, isGameOver, RL
 from navigation import topBar, customize
 # import matplotlib if usable
 import matplotlib.mlab as mlab
@@ -90,9 +90,9 @@ class matrix(object):
         #this is a cheating way to creating random num with different %
         getPercentage = random.randint(1, 100) #randint is inclusive on both sides!
         if getPercentage <= self.baseProb: #out of 100, so 90% num is 2, 10% num is 4
-            return numberChoices[0] #which is 2
+            return numberChoices[0] #which is 2, or the base num
         else:
-            return numberChoices[1] #which is 4
+            return numberChoices[1] #which is 4, or the base num square
 
     def placeRandomNumber(self):
         newNum = self.generateRandomNumber()
@@ -286,6 +286,15 @@ class matrix(object):
 #View
 def init(data):
     data.fill = 0
+    data.moveCount = 0
+
+    data.rows = 4
+    data.cols = 4
+    data.baseNum = 2
+    data.baseProb = 90
+
+    data.topMargin = 60
+    data.rightMargin = 300
 
     data.tileMargin = 5
     data.boardMargin = 5
@@ -299,20 +308,46 @@ def init(data):
 
     #start with normal mode
     data.isGameOver = False
-    data.isAI = True
-
     data.isEvilMode = False
+
+    data.depth = 2
     data.isExpectimax = False
     data.isMinimax = False
-    data.isRL = True
+    data.isRL = False
+
+    data.isLoaded = False
+    data.isOnAuto = False
 
 #Controller
 def mousePressed(event, data):
-    pass    
+    if data.width-data.rightMargin*0.5+data.boardMargin <= event.x <= data.width-data.rightMargin*0.1+data.boardMargin \
+        and data.height-data.topMargin*1.5 <= event.y <= data.height-data.topMargin:
+        data.board = matrix(data.rows, data.cols, data.width, data.height,
+                        data.tileMargin, data.boardMargin, data.topMargin, data.rightMargin,
+                        data.baseNum, data.baseProb, data.fill)
+        data.board.initializeBoard()
+        data.board.placeRandomNumber()
+        data.board.placeRandomNumber()
+        data.isLoaded = True
+        data.moveCount = 0
+    if data.width-data.rightMargin <= event.x <= data.width-data.rightMargin+data.rightMargin//2.5:
+        if data.topMargin+data.height*4//8 <= event.y <= data.topMargin*1.35+data.height*4//8:
+            data.isExpectimax = not data.isExpectimax
+            data.isMinimax = False
+            data.isRL = False
+        elif data.topMargin+data.height*5//8 <= event.y <= data.topMargin*1.35+data.height*5//8:
+            data.isExpectimax = False
+            data.isMinimax = not data.isMinimax
+            data.isRL = False
+        elif data.topMargin+data.height*6//8 <= event.y <= data.topMargin*1.35+data.height*6//8:
+            data.isExpectimax = False
+            data.isMinimax = False
+            data.isRL = not data.isRL
 
 def keyPressed(event, data):
     # use event.keysym here
     if event.keysym in {"Left","Right","Up","Down"}:
+        data.moveCount += 1
         if event.keysym == "Left":
             data.board.moveLeft()
         elif event.keysym == "Right":
@@ -331,15 +366,27 @@ def keyPressed(event, data):
         data.board.initializeBoard()
         data.board.placeRandomNumber()
         data.board.placeRandomNumber()
+        data.moveCount = 0
+    elif event.keysym == "c":
+        # when c is pressed, clear and learning matrix
+        RL.initializeRL()
 
-def timerFired(data):
-    data.timerDelay = 50 #1000ms = 1s
+    if event.keysym == "q" and data.depth < 6:
+            data.depth += 1
+    elif event.keysym == "e" and 1 < data.depth:
+            data.depth -= 1
+
+def timerFired(data):   
+    data.timerDelay = 100 #1000(ms) = 1s
     #changing the defineDepth here ---> also change the maxDepth in ai.py
-    if data.isAI:
-        getAIMove(data, 4, 4)
-    #if data.isGameOver or isGameOver(data.board.board, data.baseNum):
-        #data.board.initializeBoard()
-        #data.isGameOver = False
+    if data.isExpectimax or data.isMinimax or data.isRL:
+        getAIMove(data, data.depth, data.depth)
+        data.moveCount += 1
+    
+    if data.isOnAuto and (data.isGameOver or isGameOver(data.board.board, data.baseNum)):
+        data.board.initializeBoard()
+        data.isGameOver = False
+        data.moveCount = 0
 
 def getAIMove(data, definedDepth, maxDepth):
     #avoid aliasing the board that would cause massive problem
@@ -368,16 +415,86 @@ def getAIMove(data, definedDepth, maxDepth):
     else:
         data.board.placeRandomNumber()
 
+def getLoadColor(data):
+    if data.isLoaded:
+        data.isLoaded = False
+        return "pink"
+    else:
+        return '#bbada0'
+
+def drawLoad(canvas, data):
+    canvas.create_rectangle(data.width-data.rightMargin*0.5+data.boardMargin, data.height-data.topMargin,
+                            data.width-data.rightMargin*0.1+data.boardMargin, data.height-data.topMargin*1.5,
+                            fill=getLoadColor(data))
+    canvas.create_text(data.width-data.rightMargin*0.3+data.boardMargin, data.height-data.topMargin*1.3,
+                        text="Refresh Board")
+
+def drawInstructions(canvas, data):
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin,
+                            data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35,fill="#8f7a66",outline="")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15,text="Number of Rows")
+    
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height//8,
+                            data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height//8,fill="#8f7a66",outline="")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height//8,text="Number of Columns")
+
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*2//8,
+                            data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*2//8,fill="#8f7a66",outline="")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*2//8,text="Base Number")
+
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*3//8,
+                            data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*3//8,fill="#8f7a66",outline="")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*3//8,text="Base Probability")
+
+    canvas.create_line(data.width-data.rightMargin-data.boardMargin,data.topMargin+data.height*3.5//8,
+                        data.width,data.topMargin+data.height*3.5//8)
+
+def drawAI(canvas, data):
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*4//8,
+                        data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*4//8,
+                        fill="pink" if data.isExpectimax else "#8f7a66")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*4//8,text="Expectimax")
+
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*5//8,
+                        data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*5//8,
+                        fill="pink" if data.isMinimax else "#8f7a66")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*5//8,text="Minimax")
+
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*6//8,
+                        data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*6//8,
+                        fill="pink" if data.isRL else "#8f7a66")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*6//8,text="Reinforcement Learn")
+
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*6.5//8,text='Press "c" to clear Q-learning matrix',width=data.rightMargin//2.2)
+
 #Model
 def redrawAll(canvas, data):
     data.board.draw(canvas)
+    canvas.create_text( (data.width-data.rightMargin)//4,data.topMargin//4,
+                        text="Moves", font="Arial " + str(12))
+    canvas.create_text( (data.width-data.rightMargin)//4,data.topMargin*3//4,
+                        text=str(data.moveCount), font="Arial " + str(12))
+    
+    canvas.create_text( (data.width-data.rightMargin)*2//4,data.topMargin//4,
+                        text="Highest Score", font="Arial " + str(12))
+    canvas.create_text( (data.width-data.rightMargin)*2//4,data.topMargin*3//4,
+                        text="2048", font="Arial " + str(12))
+
+    canvas.create_text( (data.width-data.rightMargin)*3//4,data.topMargin//4,
+                        text="Recursion Depth", font="Arial " + str(12))
+    canvas.create_text( (data.width-data.rightMargin)*3//4,data.topMargin*3//4,
+                        text=str(data.depth), font="Arial " + str(12))
+
+    drawLoad(canvas, data)
+    drawInstructions(canvas, data)
+    drawAI(canvas, data)
 
 #=======================================================================================
 # use the run function as-is
 # sourced from Carnegie Mellon University 15-112 Spring 2019 page
 #=======================================================================================
 
-def run(width=600, height=600, rows=4, cols=4, baseNum=2, baseProb=90, topMargin=60, rightMargin=300):
+def run(width=600, height=600):
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
         canvas.create_rectangle(0, 0, data.width, data.height,
@@ -404,14 +521,6 @@ def run(width=600, height=600, rows=4, cols=4, baseNum=2, baseProb=90, topMargin
     data = Struct()
     data.width = width
     data.height = height
-
-    data.topMargin = topMargin
-    data.rightMargin = rightMargin
-
-    data.rows = rows
-    data.cols = cols
-    data.baseNum = baseNum
-    data.baseProb = baseProb
 
     data.timerDelay = 100 # milliseconds for default
     init(data)

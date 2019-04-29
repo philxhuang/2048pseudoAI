@@ -333,7 +333,10 @@ class RL(object):
                 RL.gradientMatrix[row][col] -= 0.1 #penalize every move used
                 if curNum != 0:
                     RL.gradientMatrix[row][col] += 0.1*math.log(curNum,10) #learning rate = 0.1
-        print(RL.gradientMatrix)
+        #print(RL.gradientMatrix)
+    
+    def initializeRL():
+        RL.gradientMatrix = [ [4-col-row if row == 0 else 0 for col in range(4)] for row in range(4)]
 
     def evalRL(self):
         # because the gradient matrix is aliased, it will learn as it goes  
@@ -452,6 +455,9 @@ def getAllPossibleTiles(board, rows, cols):
 
 def minimax(board, rows, cols, baseNum, depth, maxDepth, isRL, isMax=True, alpha=-np.inf, beta=np.inf):
     # alpha is max score for maxie, beta is min score for mini
+    if isRL and depth == maxDepth:
+            RL(board,rows,cols).updateMatrix() #update matrix for RL only at the beginning of every move, not for every calculation for a move
+
     if depth == 0:
         # evaluate when the last step is maxie/player and last depth is <= 1
         if isRL:
@@ -495,7 +501,6 @@ def minimax(board, rows, cols, baseNum, depth, maxDepth, isRL, isMax=True, alpha
                         ]
                 for i in dict:
                     if i[0] == alpha:
-                        RL(board,rows,cols).updateMatrix() #update matrix for RL only when for every move, not for every calculation for a move
                         return alpha, i[1]
             # still do this for depth > 2 to prevent returning None for even nodes > 2
             return alpha

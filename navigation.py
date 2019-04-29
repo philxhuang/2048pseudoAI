@@ -91,43 +91,40 @@ def topBar(root):
 # ===========================================================================
 def customize(root, data):
 # all customizable parameters are changed here, including input validations
-    rowsLabel = Label(root, text="# of Rows", font=("Arial", 10), background="#8f7a66")
-    rowsLabel.pack()
-    rowsLabel.place(x=5+data.width-data.rightMargin,y=data.topMargin,width=data.rightMargin//3)
     rowsInput = Entry(root)
     rowsInput.pack()
     rowsInput.place(x=data.width-data.rightMargin//2,y=data.topMargin,width=data.rightMargin//2.5)
 
-    colsLabel = Label(root, text="# of Columns", font=("Arial", 10), background="#8f7a66")
-    colsLabel.pack()
-    colsLabel.place(x=5+data.width-data.rightMargin,y=data.topMargin+data.height//8,width=data.rightMargin//2.5)
-    cols = Entry(root)
-    cols.pack()
-    cols.place(x=data.width-data.rightMargin//2,y=data.topMargin+data.height//8,width=data.rightMargin//2.5)
+    colsInput = Entry(root)
+    colsInput.pack()
+    colsInput.place(x=data.width-data.rightMargin//2,y=data.topMargin+data.height//8,width=data.rightMargin//2.5)
 
-    baseNum = Label(root, text="The Base Number", font=("Arial", 10), background="#8f7a66")
-    baseNum.pack()
-    baseNum.place(x=5+data.width-data.rightMargin,y=data.topMargin+data.height*2//8,width=data.rightMargin//2.5)
-    baseNum = Entry(root)
-    baseNum.pack()
-    baseNum.place(x=data.width-data.rightMargin//2,y=data.topMargin+data.height*2//8, width=data.rightMargin//2.5)
+    baseNumInput = Entry(root)
+    baseNumInput.pack()
+    baseNumInput.place(x=data.width-data.rightMargin//2,y=data.topMargin+data.height*2//8, width=data.rightMargin//2.5)
 
-    baseProb = Label(root, text="Base Probability", font=("Arial", 10), background="#8f7a66")
-    baseProb.pack()
-    baseProb.place(x=5+data.width-data.rightMargin,y=data.topMargin+data.height*3//8,width=data.rightMargin//2.5)
-    baseProb = Entry(root)
-    baseProb.pack()
-    baseProb.place(x=data.width-data.rightMargin//2,y=data.topMargin+data.height*3//8,width=data.rightMargin//2.5)
+    baseProbInput = Entry(root)
+    baseProbInput.pack()
+    baseProbInput.place(x=data.width-data.rightMargin//2,y=data.topMargin+data.height*3//8,width=data.rightMargin//2.5)
 
     def getParas():
         # any input is a string
         rows = rowsInput.get()
         if rows.isdigit() and 0 < int(rows) <= 10:
             data.rows = int(rows)
-        data.board.initializeBoard()
-        data.board.placeRandomNumber()
-        data.board.placeRandomNumber()
+        
+        cols = colsInput.get()
+        if cols.isdigit() and 0 < int(cols) <= 10:
+            data.cols = int(cols)
+
+        baseNum = baseNumInput.get()
+        if baseNum.isdigit() and 1 < int(baseNum) <= 10:
+            data.baseNum = int(baseNum)
+        
+        baseProb = baseProbInput.get()
+        if baseProb.isdigit() and 0 <= int(baseProb) <= 100:
+            data.baseProb = int(baseProb)
     
-    setButton = Button(root, text="Start New Board", command=getParas)
+    setButton = Button(root, text="Load New Parameters", command=getParas)
     setButton.pack()
-    setButton.place(x=data.width-data.rightMargin//2,y=data.height-data.topMargin//2)
+    setButton.place(x=data.width-data.rightMargin*0.5,y=data.height-data.topMargin*2.2)
