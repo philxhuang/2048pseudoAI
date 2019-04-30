@@ -542,7 +542,7 @@ def run(width=600, height=600):
 
     # create the root and the canvas
     root = Tk()
-    root.title("2048 AI ( created by Phil Huang for 15-112 Term Project, Spring 2019 )")
+    root.title("2048 Pseudo AI ( 15-112 Term Project, Spring 2019 )")
     root.resizable(width=False, height=False) # prevents resizing window
     canvas = Canvas(root, width=data.width, height=data.height)
     canvas.configure(bd=0, highlightthickness=0)
