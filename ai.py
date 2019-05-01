@@ -6,12 +6,8 @@
 #==================================================================================================
 import random, string, copy, math, os, sys
 import numpy as np
-import pandas as pd
-import torch
 from tkinter import *
 from tkinter import ttk
-import matplotlib.mlab as mlab
-import matplotlib.pyplot as plt
 
 #################################################
 # HW10 SOLO PROBLEM (@print2DListResult)

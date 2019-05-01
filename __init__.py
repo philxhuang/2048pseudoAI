@@ -16,16 +16,11 @@
 # import modules
 import random, string, copy, math, os, sys
 import numpy as np
-import pandas as pd
-import torch
 from tkinter import *
 from tkinter import ttk
 # import other files
 from ai import expectimax, minimax, isGameOver, RL
 from navigation import topBar, customize
-# import matplotlib if usable
-import matplotlib.mlab as mlab
-import matplotlib.pyplot as plt
 
 class matrix(object):
 #=======================================================Model================================================
@@ -321,7 +316,7 @@ def init(data):
 #Controller
 def mousePressed(event, data):
     if data.width-data.rightMargin*0.5+data.boardMargin <= event.x <= data.width-data.rightMargin*0.1+data.boardMargin \
-        and data.height-data.topMargin*1.5 <= event.y <= data.height-data.topMargin:
+        and data.height-100 <= event.y <= data.height-70:
         data.board = matrix(data.rows, data.cols, data.width, data.height,
                         data.tileMargin, data.boardMargin, data.topMargin, data.rightMargin,
                         data.baseNum, data.baseProb, data.fill)
@@ -427,10 +422,10 @@ def getLoadColor(data):
         return '#bbada0'
 
 def drawLoad(canvas, data):
-    canvas.create_rectangle(data.width-data.rightMargin*0.5+data.boardMargin, data.height-data.topMargin,
-                            data.width-data.rightMargin*0.1+data.boardMargin, data.height-data.topMargin*1.5,
+    canvas.create_rectangle(data.width-data.rightMargin*0.5+data.boardMargin, data.height-100,
+                            data.width-data.rightMargin*0.1+data.boardMargin, data.height-70,
                             fill=getLoadColor(data))
-    canvas.create_text(data.width-data.rightMargin*0.3+data.boardMargin, data.height-data.topMargin*1.3,
+    canvas.create_text(data.width-data.rightMargin*0.3+data.boardMargin, data.height-85,
                         text="Refresh Board")
 
 def drawInstructions(canvas, data):
@@ -483,17 +478,17 @@ def drawTop(canvas, data):
                         text="2048", font="Arial " + str(12))
 
     canvas.create_text( (data.width-data.rightMargin)*3//6,data.topMargin//4,
-                        text="Recursion Depth", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+                        text="Recursion Depth (z/x)", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
     canvas.create_text( (data.width-data.rightMargin)*3//6,data.topMargin*3//4,
                         text=str(data.depth), font="Arial " + str(12))
 
     canvas.create_text( (data.width-data.rightMargin)*4//6,data.topMargin//4,
-                        text="Evil Mode", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+                        text="Evil Mode (e)", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
     canvas.create_text( (data.width-data.rightMargin)*4//6,data.topMargin*3//4,
                         text="ON" if data.isEvilMode else "OFF", font="Arial " + str(12))
 
     canvas.create_text( (data.width-data.rightMargin)*5//6,data.topMargin//4,
-                        text="Auto Play", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+                        text="Auto Play (a)", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
     canvas.create_text( (data.width-data.rightMargin)*5//6,data.topMargin*3//4,
                         text="ON" if data.isAutoOn else "OFF", font="Arial " + str(12))
 
