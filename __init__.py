@@ -14,15 +14,17 @@
 #=============================================================================
 
 # import modules
-import random, string, copy, math, os, sys
+import random, string, copy, math, os, sys, csv
 import numpy as np
 from tkinter import *
 from tkinter import ttk
 # import other files
-from ai import expectimax, minimax, isGameOver, RL
+from ai import expectimax, minimax, isGameOver, RL, findMaxNumAndPos
 from navigation import topBar, customize
+from dataVisualization import readCSV, writeCSV, customCSV, drawPie
 
 class matrix(object):
+    #this is the basic object/class for the board and its manipulations
 #=======================================================Model================================================
     def __init__(self, rows, cols, width, height, tileMargin, boardMargin, topMargin, rightMargin, baseNum, baseProb, fill):
         self.rows = rows
@@ -254,6 +256,7 @@ class matrix(object):
 
 #==================================================View===============================================
     def draw(self, canvas):
+        # draw the board itself onto a bigger canvas
         canvas.create_rectangle(self.boardMargin, self.topMargin + self.tileMargin - self.boardMargin,
                                 self.boardWidth - self.boardMargin, self.topMargin + self.boardHeight - self.boardMargin, fill="")
         for row in range(self.rows):
@@ -315,6 +318,7 @@ def init(data):
 
 #Controller
 def mousePressed(event, data):
+    # load the data by clicking, basically make another instance of the matrix class
     if data.width-data.rightMargin*0.5+data.boardMargin <= event.x <= data.width-data.rightMargin*0.1+data.boardMargin \
         and data.height//2+80 <= event.y <= data.height//2+120:
         data.board = matrix(data.rows, data.cols, data.width, data.height,
@@ -325,6 +329,8 @@ def mousePressed(event, data):
         data.board.placeRandomNumber()
         data.isLoaded = True
         data.moveCount = 0
+
+    # toggle on/off the three AIs
     if data.width-data.rightMargin <= event.x <= data.width-data.rightMargin+data.rightMargin//2.5:
         if data.topMargin+data.height*4//8 <= event.y <= data.topMargin*1.35+data.height*4//8:
             data.isExpectimax = not data.isExpectimax
@@ -366,7 +372,7 @@ def keyPressed(event, data):
     if event.keysym == "c":
         # when c is pressed, clear and learning matrix
         RL.initializeRL()
-    elif event.keysym == "x" and data.depth < 6:
+    elif event.keysym == "x" and data.depth < 8:
         data.depth += 1
     elif event.keysym == "z" and 1 < data.depth:
         data.depth -= 1
@@ -374,13 +380,24 @@ def keyPressed(event, data):
         data.isEvilMode = not data.isEvilMode
     elif event.keysym == "a":
         data.isAutoOn = not data.isAutoOn
+    elif event.keysym == "r":
+        highestTile= findMaxNumAndPos(data.board.board)[0]
+        writeCSV(highestTile, data.depth, data.moveCount, data.isEvilMode, data.rows, data.cols, data.baseNum, data.baseProb, data.isExpectimax, data.isMinimax, data.isRL)
+        readCSV(data.isExpectimax, data.isMinimax, data.isRL)
+    elif event.keysym == "i":
+        drawPie(True, False, False)
+    elif event.keysym == "o":
+        drawPie(False, True, False)
+    elif event.keysym == "p":
+        drawPie(False, False, True)
 
 def timerFired(data):   
     data.timerDelay = 100 #1000(ms) = 1s
     #changing the defineDepth here ---> also change the maxDepth in ai.py
     if data.isExpectimax or data.isMinimax or data.isRL:
-        getAIMove(data, data.depth, data.depth)
-        data.moveCount += 1
+        if not data.isGameOver or not isGameOver(data.board.board, data.baseNum):
+            getAIMove(data, data.depth, data.depth)
+            data.moveCount += 1
     
     if data.isAutoOn and (data.isGameOver or isGameOver(data.board.board, data.baseNum)):
         data.board.initializeBoard()
@@ -422,6 +439,7 @@ def getLoadColor(data):
         return '#bbada0'
 
 def drawLoad(canvas, data):
+    # draw the clickable load button
     canvas.create_rectangle(data.width-data.rightMargin*0.5+data.boardMargin, data.height//2+80,
                             data.width-data.rightMargin*0.1+data.boardMargin, data.height//2+120,
                             fill=getLoadColor(data))
@@ -429,40 +447,42 @@ def drawLoad(canvas, data):
                         text="Refresh Board")
 
 def drawInstructions(canvas, data):
+    #draw the instructions for the inputs of customizable parameters
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin,
                             data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35,fill="#8f7a66",outline="")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15,text="Number of Rows")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15,text="Number of Rows 1-10")
     
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height//8,
                             data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height//8,fill="#8f7a66",outline="")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height//8,text="Number of Columns")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height//8,text="Number of Columns 1-10")
 
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*2//8,
                             data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*2//8,fill="#8f7a66",outline="")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*2//8,text="Base Number")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*2//8,text="Base Number 1-10")
 
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*3//8,
                             data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*3//8,fill="#8f7a66",outline="")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*3//8,text="Base Probability")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*3//8,text="Base Probability 0-100")
 
     canvas.create_line(data.width-data.rightMargin-data.boardMargin,data.topMargin+data.height*3.5//8,
                         data.width,data.topMargin+data.height*3.5//8)
 
 def drawAI(canvas, data):
+    # draw the clickabe AIs
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*4//8,
                         data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*4//8,
                         fill="pink" if data.isExpectimax else "#8f7a66")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*4//8,text="Expectimax")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*4//8,text="Expectimax < 3")
 
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*4.5//8,
                         data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*4.5//8,
                         fill="pink" if data.isMinimax else "#8f7a66")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*4.5//8,text="Minimax")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*4.5//8,text="Minimax (Recommended Depth < 7)")
 
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*5//8,
                         data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*5//8,
                         fill="pink" if data.isRL else "#8f7a66")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*5//8,text="Reinforcement Learn")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*5//8,text="Reinforcement Learn < 7")
 
     canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*5.4//8,text='Press "c" to clear Q-learning matrix',width=data.rightMargin//2.2)
 
@@ -470,13 +490,14 @@ def drawAI(canvas, data):
     canvas.create_text(data.width-data.rightMargin//2+data.boardMargin, data.height-40,text=str(RL.gradientMatrix), width=data.rightMargin-10)
 
 def drawTop(canvas, data):
+    #draw the components on the top to show things live moveCount, evilMode, and Auto Play
     canvas.create_text( (data.width-data.rightMargin)//6,data.topMargin//4,
                         text="Moves", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
     canvas.create_text( (data.width-data.rightMargin)//6,data.topMargin*3//4,
                         text=str(data.moveCount), font="Arial " + str(12))
     
     canvas.create_text( (data.width-data.rightMargin)*2//6,data.topMargin//4,
-                        text="Highest Score", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
+                        text="Highest Tile", font="Arial " + str(12), width=(data.width-data.rightMargin)//6)
     canvas.create_text( (data.width-data.rightMargin)*2//6,data.topMargin*3//4,
                         text="2048", font="Arial " + str(12))
 
@@ -497,6 +518,7 @@ def drawTop(canvas, data):
 
 #Model
 def redrawAll(canvas, data):
+    # top drawing function
     data.board.draw(canvas)
     drawTop(canvas, data)
     drawLoad(canvas, data)

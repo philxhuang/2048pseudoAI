@@ -4,7 +4,7 @@
 # ML concepts from https://www.youtube.com/watch?v=bVQUSndDllU&list=PLFt_AvWsXl0frsCrmv4fKfZ2OQIwoUuYO&index=1
 # 2048 Algorithm from https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-the-game-2048/23853848#
 #==================================================================================================
-import random, string, copy, math, os, sys
+import random, string, copy, math, os, sys, csv
 import numpy as np
 from tkinter import *
 from tkinter import ttk
@@ -145,6 +145,7 @@ def shiftDown(board, col):
 
 #=============================================check game state==============================================
 def isGameOver(realBoard, baseNum):
+    # try all four moves
     board = copy.deepcopy(realBoard)
     rows = len(board)
     cols = len(board[0])    
@@ -302,7 +303,7 @@ def evaluation(board):
     wEmptySquare = 10
     wMono = 1
     wSmooth = 1
-    wGrad = 1
+    wGrad = 2
 
     bias1 = 0
     bias2 = 0
@@ -314,11 +315,13 @@ def evaluation(board):
             wMono*(xMono + bias3) + wSmooth*(xSmooth + bias4) + wGrad*(xGrad + bias5)
 
 class RL(object):
+    # similar ideas as above eval function
     def __init__(self, board, rows, cols):
         self.board = board
         self.rows = rows
         self.cols = cols
 
+    # the class arttribute is global to all instance, so it will be aliased ---> learning
     gradientMatrix = [ [4-col-row if row == 0 else 0 for col in range(4)] for row in range(4)]
 
     def updateMatrix(self):
@@ -331,6 +334,7 @@ class RL(object):
         #print(RL.gradientMatrix)
     
     def initializeRL():
+        # outside the self
         RL.gradientMatrix = [ [4-col-row if row == 0 else 0 for col in range(4)] for row in range(4)]
 
     def evalRL(self):
@@ -352,7 +356,7 @@ class RL(object):
         wEmptySquare = 10
         wMono = 1
         wSmooth = 1
-        wGrad = 1
+        wGrad = 2
 
         bias1 = 0
         bias2 = 0
@@ -365,6 +369,7 @@ class RL(object):
 
 ##########################################################################################################
 # Expectimax AI
+# learned and modified from all sources of minimax, came up originally
 ##########################################################################################################
 def expectimax(board, rows, cols, baseNum, depth, maxDepth, alpha1=-np.inf, alpha2=-np.inf, alpha3=-np.inf, alpha4=-np.inf):
     # use a real-time update board deep copy of the actual board: aiBoard

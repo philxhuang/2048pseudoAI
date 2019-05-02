@@ -6,7 +6,7 @@
 #=============================================================================
 
 # import modules
-import random, string, copy, math, os, sys
+import random, string, copy, math, os, sys, csv
 import numpy as np
 from tkinter import *
 from tkinter import ttk
@@ -28,6 +28,11 @@ rulesText = """Wikipedia's Description:
         z: recursion depth - 1
         e: toggle Evil Mode
         a: toggle Auto Run Mode (reset board when game is over--->mostly for RL AI)
+
+        r: Record the current board status with the type of algorithm that is working (please do so only when game is over so we have good data!)
+        i: Statistics for Expectimax Performance
+        o: Statistics for Minimax Performance
+        p: Statistics for Reinforcement Learning Performance
     """
 parametersText = """
     Here are the parameters you can customize in this game without modifying the source code:
@@ -112,7 +117,7 @@ designText = """
     wEmptySquare = 10
     wMono = 1
     wSmooth = 1
-    wGrad = 1
+    wGrad = 2
 
     bias1 = 0
     bias2 = 0
@@ -124,7 +129,7 @@ designText = """
             wMono*(xMono + bias3) + wSmooth*(xSmooth + bias4) + wGrad*(xGrad + bias5)
     """
 
-def rules(windowWidth=600, windowHeight=400):
+def rules(windowWidth=600, windowHeight=500):
     root = Tk()
     root.resizable(width=False, height=False) # prevents resizing window
     canvas = Canvas(root, width=windowWidth, height=windowHeight, background="#bbada0")
@@ -132,7 +137,7 @@ def rules(windowWidth=600, windowHeight=400):
     canvas.pack()
     canvas.create_text(windowWidth//2, windowHeight//2, text=rulesText, width=windowWidth-10)
 
-def parameters(windowWidth=600, windowHeight=400):
+def parameters(windowWidth=500, windowHeight=300):
     root = Tk()
     root.resizable(width=False, height=False) # prevents resizing window
     canvas = Canvas(root, width=windowWidth, height=windowHeight, background="#bbada0")
@@ -149,6 +154,7 @@ def design(windowWidth=800, windowHeight=600):
     canvas.create_text(windowWidth//2, windowHeight//2, text=designText, width=windowWidth-10)
 #==========================================================================================
 # AI Component winows has a totally different canvas to show selection & fractals
+# sourced from Carnegie Mellon University 15-112 Spring 2019 page
 # =========================================================================================
 def init(data):
     data.minimax = False
@@ -279,8 +285,8 @@ def AIComponents(windowWidth=1200, windowHeight=550):
 
 #==========================================================================================
 # Topbar ---> Top level functions
-# =========================================================================================
 # adapted and modified from https://effbot.org/tkinterbook/menu.htm
+# =========================================================================================
 def topBar(root):
     # create top bar before the canvas
     menuBar = Menu(root)
@@ -297,6 +303,7 @@ def topBar(root):
 
 #==========================================================================================
 # Customization & Validation of Inputs
+# mostly learned from https://effbot.org/tkinterbook/tkinter-index.htm
 # =========================================================================================
 def customize(root, data):
 # all customizable parameters are changed here, including input validations
