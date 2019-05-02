@@ -289,7 +289,7 @@ def init(data):
     data.baseProb = 90
 
     data.topMargin = 80
-    data.rightMargin = 300
+    data.rightMargin = 500
 
     data.tileMargin = 5
     data.boardMargin = 5
@@ -316,7 +316,7 @@ def init(data):
 #Controller
 def mousePressed(event, data):
     if data.width-data.rightMargin*0.5+data.boardMargin <= event.x <= data.width-data.rightMargin*0.1+data.boardMargin \
-        and data.height-100 <= event.y <= data.height-70:
+        and data.height//2+80 <= event.y <= data.height//2+120:
         data.board = matrix(data.rows, data.cols, data.width, data.height,
                         data.tileMargin, data.boardMargin, data.topMargin, data.rightMargin,
                         data.baseNum, data.baseProb, data.fill)
@@ -330,11 +330,11 @@ def mousePressed(event, data):
             data.isExpectimax = not data.isExpectimax
             data.isMinimax = False
             data.isRL = False
-        elif data.topMargin+data.height*5//8 <= event.y <= data.topMargin*1.35+data.height*5//8:
+        elif data.topMargin+data.height*4.55//8 <= event.y <= data.topMargin*1.35+data.height*4.5//8:
             data.isExpectimax = False
             data.isMinimax = not data.isMinimax
             data.isRL = False
-        elif data.topMargin+data.height*6//8 <= event.y <= data.topMargin*1.35+data.height*6//8:
+        elif data.topMargin+data.height*5//8 <= event.y <= data.topMargin*1.35+data.height*5//8:
             data.isExpectimax = False
             data.isMinimax = False
             data.isRL = not data.isRL
@@ -422,10 +422,10 @@ def getLoadColor(data):
         return '#bbada0'
 
 def drawLoad(canvas, data):
-    canvas.create_rectangle(data.width-data.rightMargin*0.5+data.boardMargin, data.height-100,
-                            data.width-data.rightMargin*0.1+data.boardMargin, data.height-70,
+    canvas.create_rectangle(data.width-data.rightMargin*0.5+data.boardMargin, data.height//2+80,
+                            data.width-data.rightMargin*0.1+data.boardMargin, data.height//2+120,
                             fill=getLoadColor(data))
-    canvas.create_text(data.width-data.rightMargin*0.3+data.boardMargin, data.height-85,
+    canvas.create_text(data.width-data.rightMargin*0.3+data.boardMargin, data.height//2+100,
                         text="Refresh Board")
 
 def drawInstructions(canvas, data):
@@ -454,17 +454,20 @@ def drawAI(canvas, data):
                         fill="pink" if data.isExpectimax else "#8f7a66")
     canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*4//8,text="Expectimax")
 
+    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*4.5//8,
+                        data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*4.5//8,
+                        fill="pink" if data.isMinimax else "#8f7a66")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*4.5//8,text="Minimax")
+
     canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*5//8,
                         data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*5//8,
-                        fill="pink" if data.isMinimax else "#8f7a66")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*5//8,text="Minimax")
-
-    canvas.create_rectangle(data.width-data.rightMargin,data.topMargin+data.height*6//8,
-                        data.width-data.rightMargin+data.rightMargin//2.5,data.topMargin*1.35+data.height*6//8,
                         fill="pink" if data.isRL else "#8f7a66")
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*6//8,text="Reinforcement Learn")
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*5//8,text="Reinforcement Learn")
 
-    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*6.5//8,text='Press "c" to clear Q-learning matrix',width=data.rightMargin//2.2)
+    canvas.create_text(data.width-data.rightMargin//1.25,data.topMargin*1.15+data.height*5.4//8,text='Press "c" to clear Q-learning matrix',width=data.rightMargin//2.2)
+
+    canvas.create_text(data.width-data.rightMargin//2+data.boardMargin, data.height-80,text="State of the RL Gradient Matrix")
+    canvas.create_text(data.width-data.rightMargin//2+data.boardMargin, data.height-40,text=str(RL.gradientMatrix), width=data.rightMargin-10)
 
 def drawTop(canvas, data):
     canvas.create_text( (data.width-data.rightMargin)//6,data.topMargin//4,
@@ -557,4 +560,4 @@ def run(width=600, height=600):
     root.mainloop()  # blocks until window is closed
     print("Bye!")
 
-run(800, 600)
+run(1000, 600)

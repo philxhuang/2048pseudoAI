@@ -86,6 +86,44 @@ RLText = """
                       [0,0,0,0] ]                         [-2, -12, -26, -52] ]
     """
 
+designText = """
+    Game Design:
+
+    This game is designed in Python in the follow structure:
+    1. The __init__.py file contains the board as an object. It also has tkinter canvas codes for drawing the board and other game commands
+    2. The navigation.py file contains documentations, top bar content, and a fractal used to demonstrate the AI algorithms.
+    3. The ai.py file contains all 3 AI algorithms. Expectimax and Minimax are made by modifying a deep copy of the board from __init__.py,
+        and then find the best move so as to avoid aliasing problems. The Reinforcement Learning is made similarly to minimax, but the evaluaion
+        scheme is coded in an object. The class attribute allows the weight/gradient matrix to learn/accumulate without being erased every time on call.
+    4. The dataVisualization.py uses matplotlib to pull data from pre-loaded CSV files in order to visualize the performances of algorithms.
+
+    The Evaluation Scheme cannot be changed by simply playing the game. Experienced programmer can download the source code and change internally.
+    Here is how the evaluation function works:
+    def evaluation(board):
+
+    xL = highestNumLocation(board) #keep the highest score tile at top left
+    xES = emptySquares(board) # bonus for more empty tiles ---> encourage merging
+    xMono = monotinicity(board) # bonus for making rows/cols either strictly decreasing from the left cornor
+    xSmooth = smoothness(board) # measures the difference between neighboring tiles and tries to minimize this count; used log10
+    xGrad = gradient(board) # create a gradiantMatrix based on the current row and cols of the board to evaluate the board, used log10
+
+    # These weights are standardized. Feel free to change them or make them learn!
+    wLocation = 100
+    wEmptySquare = 10
+    wMono = 1
+    wSmooth = 1
+    wGrad = 1
+
+    bias1 = 0
+    bias2 = 0
+    bias3 = 0
+    bias4 = 0
+    bias5 = 0
+
+    return wLocation*(xL + bias1) + wEmptySquare*(xES + bias2) + 
+            wMono*(xMono + bias3) + wSmooth*(xSmooth + bias4) + wGrad*(xGrad + bias5)
+    """
+
 def rules(windowWidth=600, windowHeight=400):
     root = Tk()
     root.resizable(width=False, height=False) # prevents resizing window
@@ -102,12 +140,13 @@ def parameters(windowWidth=600, windowHeight=400):
     canvas.pack()
     canvas.create_text(windowWidth//2, windowHeight//2, text=parametersText, width=windowWidth-10)
 
-def design(windowWidth=600, windowHeight=600):
+def design(windowWidth=800, windowHeight=600):
     root = Tk()
     root.resizable(width=False, height=False) # prevents resizing window
     canvas = Canvas(root, width=windowWidth, height=windowHeight, background="#bbada0")
     canvas.configure(bd=0, highlightthickness=0)
     canvas.pack()
+    canvas.create_text(windowWidth//2, windowHeight//2, text=designText, width=windowWidth-10)
 #==========================================================================================
 # AI Component winows has a totally different canvas to show selection & fractals
 # =========================================================================================
@@ -155,11 +194,11 @@ def drawFractals(canvas, startX, startY, depth, prevX, prevY, isMaxie=True, heig
         drawFractals(canvas, startX+60, startY+heightGap, depth-1, startX, startY, isMaxie=False)
         drawFractals(canvas, startX+60*2, startY+heightGap, depth-1, startX, startY, isMaxie=False)
     else:
-        drawFractals(canvas, startX-60, startY+heightGap, 0, startX, startY, isMaxie=False)
-        drawFractals(canvas, startX+60, startY+heightGap, 0, startX, startY, isMaxie=False)
+        drawFractals(canvas, startX-80, startY+heightGap, 0, startX, startY, isMaxie=False)
+        drawFractals(canvas, startX+80, startY+heightGap, 0, startX, startY, isMaxie=False)
 
-        drawFractals(canvas, startX-60, startY+heightGap, depth-1, startX, startY, isMaxie=True)
-        drawFractals(canvas, startX+60, startY+heightGap, depth-1, startX, startY, isMaxie=True)
+        drawFractals(canvas, startX-80, startY+heightGap, depth-1, startX, startY, isMaxie=True)
+        drawFractals(canvas, startX+80, startY+heightGap, depth-1, startX, startY, isMaxie=True)
 
 def redrawAll(canvas, data):
     canvas.create_rectangle(data.width//8, 10, data.width*3//8-10, 30, fill="pink" if data.expectimax else "#8f7a66")
@@ -184,8 +223,9 @@ def redrawAll(canvas, data):
     canvas.create_rectangle(30, data.height//2+50, 150, data.height//2+90, fill="pink")
     canvas.create_text(90, data.height//2+70, text="Decrease")
 
-    canvas.create_oval(70, data.height//2+100, 110, data.height//2+140, fill="green")
-    canvas.create_text(90, data.height//2+120, text="Mini Node")
+    canvas.create_oval(80, data.height//2+110, 100, data.height//2+130, fill="green")
+    canvas.create_text(90, data.height//2+100, text="Mini Node")
+    canvas.create_text(90, data.height//2+180, text="Note: This tree only shows two nodes/possible tiles for every player's move for the same of clarity.", width=150)
 
     canvas.create_text(data.width//2-60,data.height//2-10, text="Current Depth")
     canvas.create_text(data.width//2-60,data.height//2+10, text=str(data.depth))
@@ -296,4 +336,4 @@ def customize(root, data):
     
     setButton = Button(root, text="Load New Parameters", command=getParas)
     setButton.pack()
-    setButton.place(x=data.width-data.rightMargin*0.5,y=data.height-50)
+    setButton.place(x=data.width-data.rightMargin*0.4,y=data.height//2+140)

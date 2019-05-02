@@ -262,7 +262,7 @@ def smoothness(board):
 # and from https://github.com/SrinidhiRaghavan/AI-2048-Puzzle/blob/master/Helper.py
 # WEIGHT_MATRIX = [[2048, 1024, 64, 32],[512, 128, 16, 2],[256, 8, 2, 1],[4, 2, 1, 1]] for 2048 specifically
 def getMatrix(rows, cols):
-    # recrate gradiantMatrix based on the current row and cols of the board, so the diagonal is not always all 0!
+    # create a gradiantMatrix based on the current row and cols of the board, so the diagonal is not always all 0!
     gradientMatrix = [ [0]*cols for row in range(rows) ]
     for row in range(rows):
         for col in range(cols):
@@ -298,7 +298,6 @@ def evaluation(board):
     xGrad = gradient(board)
     #print(xL, xES, xMono, xSmooth, xGrad)
 
-    # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
     wLocation = 100
     wEmptySquare = 10
     wMono = 1
@@ -349,7 +348,6 @@ class RL(object):
                 if curNum != 0:
                     xGrad += math.log(curNum,10)*RL.gradientMatrix[row][col] # use log of the tile num so the score is not crazy large
 
-        # first: parameters in our ML algorithm, will be improved with Reinforcement Learning in PyTorch
         wLocation = 100
         wEmptySquare = 10
         wMono = 1
