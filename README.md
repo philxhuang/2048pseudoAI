@@ -1,6 +1,6 @@
 # 2048 Pseudo AI | 15-112 Term Project, Spring 2019
 
-### Major Dependencies: Python 3.6.6 (3 and above), Numpy (for infinity), matplotlib (for data visualization)
+### Major Dependencies: Python 3.6.6 (3 and above), Numpy (for infinity), Pandas(for reading csv files), Matplotlib (for data visualization)
 
 ## Project Description
 The purpose of this project “2048 Pseudo-AI” is to create an open-sourced educational game of 2048 that introduces the concept of algorithmic AI relationship with customizable algorithmic parameters written in the Python language. By exploring the optimal strategies for solving the popular game 2048, this game will offer a complete, playable game, on top of which users are able to learn how the expectimax AI algorithm works and design their own parameters to alter the efficiency of the algorithm.
