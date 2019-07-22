@@ -15,3 +15,22 @@ Pretty much everything is prepared already. The user needs to simply run the __i
 
 ## Shortcut Commands: None.
 *All necessary commmands willl be explained in the documentation within the game.
+
+## Reinforcement Learning Architecture
+Surprisingly, this RL algorithm performs better than both Expectimax and Minimax algorithms. Essentially, it learns on previous "best" moves while constantly updating the weight/gradient matrix, supported by 4 hyper-parameters scored from the previous game state.
+
+1. Game state is fed to the minimax with alpha-beta pruning, supported by 4 hyper-parameters and 1 gradient matrix from previous move.
+
+2. Minimax produces the best move the gives the highest scores recursively.
+
+3. From the best move, the next game state is predicted. The gradient matrix is update with the help of hyper-parameters by:
+    1. Punishing lightly every un-occupied square, e.g. -= 0.01 at the position.
+    2. Rewarding larger numbers on the correct squares by += log(#).
+
+4. The best move then actually updates the game state, while a new gradient matrix and the SAME 4 hyper-parameters support the next Minimax estimation.
+
+<p align="center">
+  <img src="RL-Diagram.jpg" alt="RL-Diagram"/>
+</p>
+
+*Some Future Thought:* In a stochastic game lik 2048, It is almost impossible to know subtly whether the RL is learning *from experience or bias*. My sixth sense tells me this RL will hit a hard ceiling at some point. It'd be some interesting research for someone to figure out.
